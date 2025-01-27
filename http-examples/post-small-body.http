@@ -1,0 +1,11 @@
+﻿@name = John
+@user = doe
+@guid = 1e9caebd-3621-4c1f-9e78-cb176bac540f
+
+POST https://webhook.site/{{guid}}
+Authorization: Basic {{user}} 12345678
+Content-Type: application/json
+
+{
+  "details": "Hello {{name}}!"
+}

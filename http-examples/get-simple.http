@@ -1,0 +1,11 @@
+﻿GET https://localhost:7028/today
+Accept: application/json
+
+SNAPSHOT:
+status: 200
+{
+  "date": "2025-01-28",
+  "temperatureC": 11,
+  "summary": "Chilly",
+  "temperatureF": 51
+}

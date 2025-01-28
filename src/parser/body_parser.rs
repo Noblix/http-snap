@@ -12,7 +12,15 @@ pub(crate) fn body_parser() -> impl Parser<char, Json, Error = Simple<char>> {
         },
     });
 
-    return json_parser().or(no_body);
+    let snapshot = whitespace()
+        .then(just("SNAPSHOT:"))
+        .map(|_| Json {
+            element: Element {
+                value: Value::Null(),
+            },
+        });
+
+    return json_parser().or(snapshot).or(no_body);
 }
 
 fn json_parser() -> impl Parser<char, Json, Error = Simple<char>> {
@@ -124,7 +132,7 @@ fn character_parser() -> impl Parser<char, char, Error = Simple<char>> {
         let is_special = *c == '"' || *c == '\\';
         in_range && !is_special
     })
-        .map(|c| c);
+    .map(|c| c);
 
     return escape_parser().or(valid_char);
 }
@@ -196,7 +204,7 @@ fn exponent_parser() -> impl Parser<char, Number, Error = Simple<char>> {
                         &exponent_sign.to_string(),
                         &exponent,
                     ]
-                        .concat(),
+                    .concat(),
                 )
             },
         );

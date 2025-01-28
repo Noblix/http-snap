@@ -9,6 +9,12 @@ pub struct HttpFile {
     pub body: Json,
 }
 
+#[derive(Debug)]
+pub struct SnapResponse {
+    pub status: u16,
+    pub body: Json
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub enum HttpVerb {
     GET,

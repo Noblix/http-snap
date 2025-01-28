@@ -1,0 +1,16 @@
+﻿POST https://localhost:7028/measurement
+Accept: application/json
+Content-Type: application/json
+
+{
+  "degrees": 2
+}
+
+SNAPSHOT:
+status: 200
+{
+  "date": "2025-01-28",
+  "temperatureC": 2,
+  "summary": "Chilly",
+  "temperatureF": 35
+}

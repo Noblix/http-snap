@@ -47,7 +47,7 @@ fn headers_parser() -> impl Parser<char, Vec<HeaderComparer>, Error = Simple<cha
     let header_value = filter(|x: &char| x != &'\r' && x != &'\n' && x != &'{' && x != &'}')
         .repeated()
         .at_least(1)
-        .map(|chars: Vec<char>| chars.into_iter().collect::<String>());
+        .map(|chars: Vec<char>| Comparison::Exact(ValueComparer::String(chars.into_iter().collect::<String>())));
 
     let header_key = text::ident()
         .then(filter(|c: &char| c.is_ascii_alphanumeric() || c == &'-').repeated())
@@ -56,10 +56,10 @@ fn headers_parser() -> impl Parser<char, Vec<HeaderComparer>, Error = Simple<cha
     let headers = (header_key
         .then_ignore(just(':'))
         .then_ignore(repeated_spaces)
-        .then(header_value))
+        .then(ignore_comparison_parser().or(header_value)))
     .map(|(name, value)| HeaderComparer {
         name,
-        value: Comparison::Exact(ValueComparer::String(value)),
+        value,
     })
     .padded()
     .repeated();
@@ -79,7 +79,7 @@ fn value_parser(
         .or(just("false").map(|_| Comparison::Exact(ValueComparer::Boolean(false))));
     let null = just("null").map(|_| Comparison::Exact(ValueComparer::Null()));
 
-    return ignore_value_parser()
+    return ignore_comparison_parser()
         .or(object_parser(element_parser.clone()))
         .or(array_parser(element_parser.clone()))
         .or(string_value_parser())
@@ -88,7 +88,7 @@ fn value_parser(
         .or(null);
 }
 
-fn ignore_value_parser() -> impl Parser<char, Comparison, Error = Simple<char>> {
+fn ignore_comparison_parser() -> impl Parser<char, Comparison, Error = Simple<char>> {
     return whitespace()
         .then(just("_"))
         .then_ignore(whitespace())

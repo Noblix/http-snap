@@ -1,37 +1,16 @@
-use http_snap::parser;
-use http_snap::types::*;
-use reqwest::header::{HeaderMap, HeaderName};
+use http_snap::{client, parser};
 use std::fs::{read_to_string, File};
 use std::io::Write;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let path_to_file = "http-examples/post-simple.http";
+    let path_to_file = "http-examples/get-simple.http";
     let raw_text = read_to_string(path_to_file).unwrap();
     let text = raw_text.trim_start_matches("\u{feff}");
-    let result = parser::parse_file(text);
-    let http_file = result.unwrap();
+    let http_file = parser::parse_file(text).unwrap();
     println!("{:?}", http_file);
 
-    let headers = get_headers(&http_file.headers);
-    let body = get_json(&http_file.body);
-
-    let client = reqwest::Client::new();
-
-    let response = match http_file.verb {
-        HttpVerb::GET => client.get(&http_file.url).headers(headers).send().await?,
-        HttpVerb::POST => {
-            client
-                .post(&http_file.url)
-                .headers(headers)
-                .body(body)
-                .send()
-                .await?
-        }
-        _ => panic!("Unknown verb!"),
-    };
-
-    let parsed_response = parser::parse_response(response).await?;
+    let parsed_response = client::send_request(&http_file).await?;
 
     let parts_of_file: Vec<&str> = raw_text.split("SNAPSHOT:").collect();
     let file_appending = "SNAPSHOT:\nstatus: ".to_owned()
@@ -54,19 +33,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     file.flush()?;
 
     return Ok(());
-}
-
-fn get_headers(request_headers: &Vec<Header>) -> HeaderMap {
-    let mut headers = HeaderMap::new();
-    for header in request_headers {
-        headers.insert(
-            HeaderName::from_bytes(header.name.as_ref()).unwrap(),
-            header.value.parse().unwrap(),
-        );
-    }
-    return headers;
-}
-
-fn get_json(body: &Json) -> String {
-    return serde_json::to_string(body).unwrap();
 }

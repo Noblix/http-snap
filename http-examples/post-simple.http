@@ -8,9 +8,15 @@ Content-Type: application/json
 
 SNAPSHOT:
 status: 200
+
+content-type: application/json; charset=utf-8
+date: Wed, 29 Jan 2025 21:09:03 GMT
+server: Kestrel
+transfer-encoding: chunked
+
 {
-  "date": "2025-01-28",
+  "date": "2025-01-29",
   "temperatureC": 2,
-  "summary": "Chilly",
-  "temperatureF": 35
+  "summary": "Scorching",
+  "temperatureF": 42
 }

@@ -1,11 +1,14 @@
-use http_snap::{client, parser};
+use http_snap::types::SnapResponse;
+use http_snap::{client, comparer, parser};
 use std::fs::{read_to_string, File};
 use std::io::Write;
-use http_snap::types::SnapResponse;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Options that should come from CLI
     let path_to_file = "http-examples/post-simple.http";
+    let execution_mode = Mode::CompareSnapshot;
+
     let raw_text = read_to_string(path_to_file).unwrap();
     let text = raw_text.trim_start_matches("\u{feff}");
     let http_file = parser::parse_file(text).unwrap();
@@ -14,22 +17,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let response = client::send_request(&http_file).await?;
     let parsed_response = parser::parse_response(response).await?;
 
-    let merged = create_content_with_snapshot(&raw_text, &parsed_response);
+    if execution_mode == Mode::UpdateSnapshot {
+        let merged = create_content_with_snapshot(&raw_text, &parsed_response);
 
-    let mut file = File::options()
-        .write(true)
-        .truncate(true)
-        .open(path_to_file)?;
-    file.write_all(&merged.as_bytes())
-        .expect("Unable to write snapshot");
-    file.flush()?;
+        let mut file = File::options()
+            .write(true)
+            .truncate(true)
+            .open(path_to_file)?;
+        file.write_all(&merged.as_bytes())
+            .expect("Unable to write snapshot");
+        file.flush()?;
+    } else {
+        let fits_snapshot = comparer::compare_to_snapshot(&http_file.snapshot, &parsed_response);
+        if fits_snapshot {
+            println!("Response matches snapshot")
+        } else {
+            println!("Response does NOT match snapshot");
+        }
+    }
 
     return Ok(());
 }
 
 fn create_content_with_snapshot(raw_text: &str, response: &SnapResponse) -> String {
     let parts_of_file: Vec<&str> = raw_text.split("SNAPSHOT:").collect();
-    let mut file_appending = "SNAPSHOT:\nstatus: ".to_owned() + &response.status.to_string() + "\n\n";
+    let mut file_appending =
+        "SNAPSHOT:\nstatus: ".to_owned() + &response.status.to_string() + "\n\n";
     for (name, value) in &response.headers {
         file_appending += &(name.as_str().to_owned() + ": " + value.to_str().unwrap());
         file_appending += "\n";
@@ -45,4 +58,10 @@ fn create_content_with_snapshot(raw_text: &str, response: &SnapResponse) -> Stri
     };
 
     return merged;
+}
+
+#[derive(Debug, Eq, PartialEq)]
+enum Mode {
+    UpdateSnapshot,
+    CompareSnapshot,
 }

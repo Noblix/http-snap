@@ -1,4 +1,5 @@
-﻿use serde::ser::{SerializeMap, SerializeSeq, Serializer};
+﻿use reqwest::header::HeaderMap;
+use serde::ser::{SerializeMap, SerializeSeq, Serializer};
 use serde::Serialize;
 
 #[derive(Debug)]
@@ -12,6 +13,7 @@ pub struct HttpFile {
 #[derive(Debug)]
 pub struct SnapResponse {
     pub status: u16,
+    pub headers: HeaderMap,
     pub body: Json
 }
 

@@ -34,10 +34,12 @@ pub async fn parse_response(
     response: Response,
 ) -> Result<SnapResponse, Box<dyn std::error::Error>> {
     let status = response.status().as_u16();
+    let headers = response.headers().clone();
     let raw_body = response.text().await?;
     let body = body_parser::body_parser().parse(raw_body).unwrap();
     return Ok(SnapResponse {
         status,
+        headers,
         body,
     });
 }

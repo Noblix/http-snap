@@ -10,7 +10,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let http_file = parser::parse_file(text).unwrap();
     println!("{:?}", http_file);
 
-    let parsed_response = client::send_request(&http_file).await?;
+    let response = client::send_request(&http_file).await?;
+    let parsed_response = parser::parse_response(response).await?;
 
     let parts_of_file: Vec<&str> = raw_text.split("SNAPSHOT:").collect();
     let file_appending = "SNAPSHOT:\nstatus: ".to_owned()

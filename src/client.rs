@@ -1,10 +1,8 @@
-﻿use crate::parser;
-use crate::types::{Header, HttpFile, HttpVerb, Json, SnapResponse};
+﻿use crate::types::{Header, HttpFile, HttpVerb, Json};
 use reqwest::header::{HeaderMap, HeaderName};
+use reqwest::Response;
 
-pub async fn send_request(
-    http_file: &HttpFile,
-) -> Result<SnapResponse, Box<dyn std::error::Error>> {
+pub async fn send_request(http_file: &HttpFile) -> Result<Response, Box<dyn std::error::Error>> {
     let headers = get_headers(&http_file.headers);
     let body = get_json(&http_file.body);
 
@@ -23,9 +21,7 @@ pub async fn send_request(
         _ => panic!("Unknown verb!"),
     };
 
-    let parsed_response = parser::parse_response(response).await?;
-
-    return Ok(parsed_response);
+    return Ok(response);
 }
 
 fn get_headers(request_headers: &Vec<Header>) -> HeaderMap {

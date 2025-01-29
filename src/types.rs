@@ -1,6 +1,7 @@
 ﻿use reqwest::header::HeaderMap;
 use serde::ser::{SerializeMap, SerializeSeq, Serializer};
 use serde::Serialize;
+use crate::snapshot_types::Snapshot;
 
 #[derive(Debug)]
 pub struct HttpFile {
@@ -8,6 +9,7 @@ pub struct HttpFile {
     pub url: String,
     pub headers: Vec<Header>,
     pub body: Json,
+    pub snapshot: Snapshot,
 }
 
 #[derive(Debug)]

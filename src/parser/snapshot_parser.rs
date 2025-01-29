@@ -1,33 +1,86 @@
-﻿use crate::types::*;
+﻿use crate::snapshot_types::Number::Int;
+use crate::snapshot_types::*;
 use chumsky::error::Simple;
 use chumsky::prelude::*;
 use chumsky::text::{int, whitespace};
 use chumsky::Parser;
+use std::ops::Add;
 
 // Based on https://www.json.org/json-en.html
-pub(crate) fn body_parser() -> impl Parser<char, Json, Error = Simple<char>> {
-    let no_body = empty().map(|_| Json {
-        element: Element {
-            value: Value::Null(),
+pub(crate) fn snapshot_parser() -> impl Parser<char, Snapshot, Error = Simple<char>> {
+    let no_body = end().map(|_| JsonComparer {
+        element: ElementComparer {
+            value: Comparison::Exact(ValueComparer::Null()),
         },
     });
 
-    return json_parser().or(no_body);
+    return whitespace()
+        .ignore_then(just("SNAPSHOT:"))
+        .ignore_then(whitespace())
+        .ignore_then(status_parser())
+        .then_ignore(whitespace())
+        .then(headers_parser())
+        .then_ignore(whitespace())
+        .then(json_parser().or(no_body))
+        .map(|((status, headers), body)| Snapshot {
+            status,
+            headers,
+            body,
+        });
 }
 
-fn json_parser() -> impl Parser<char, Json, Error = Simple<char>> {
-    return element_parser().map(|element| Json { element });
+fn status_parser() -> impl Parser<char, Comparison, Error = Simple<char>> {
+    return just("status: ")
+        .ignore_then(one_of("0123456789").repeated().exactly(3))
+        .map(|code: Vec<char>| {
+            Comparison::Exact(ValueComparer::Number(Int(code
+                .into_iter()
+                .collect::<String>()
+                .parse::<i64>()
+                .unwrap())))
+        });
+}
+
+fn headers_parser() -> impl Parser<char, Vec<HeaderComparer>, Error = Simple<char>> {
+    let repeated_spaces = just(' ').repeated();
+
+    let header_value = filter(|x: &char| x != &'\r' && x != &'\n' && x != &'{' && x != &'}')
+        .repeated()
+        .at_least(1)
+        .map(|chars: Vec<char>| chars.into_iter().collect::<String>());
+
+    let header_key = text::ident()
+        .then(filter(|c: &char| c.is_ascii_alphanumeric() || c == &'-').repeated())
+        .foldl(|start, c| start.add(&c.to_string()));
+
+    let headers = (header_key
+        .then_ignore(just(':'))
+        .then_ignore(repeated_spaces)
+        .then(header_value))
+    .map(|(name, value)| HeaderComparer {
+        name,
+        value: Comparison::Exact(ValueComparer::String(value)),
+    })
+    .padded()
+    .repeated();
+
+    return headers;
+}
+
+fn json_parser() -> impl Parser<char, JsonComparer, Error = Simple<char>> {
+    return element_parser().map(|element| JsonComparer { element });
 }
 
 fn value_parser(
-    element_parser: impl Parser<char, Element, Error = Simple<char>> + Clone,
-) -> impl Parser<char, Value, Error = Simple<char>> {
-    let number = number_parser().map(|value| Value::Number(value));
-    let boolean = (just("true").map(|_| Value::Boolean(true)))
-        .or(just("false").map(|_| Value::Boolean(true)));
-    let null = just("null").map(|_| Value::Null());
+    element_parser: impl Parser<char, ElementComparer, Error = Simple<char>> + Clone,
+) -> impl Parser<char, Comparison, Error = Simple<char>> {
+    let number = number_parser().map(|value| Comparison::Exact(ValueComparer::Number(value)));
+    let boolean = (just("true").map(|_| Comparison::Exact(ValueComparer::Boolean(true))))
+        .or(just("false").map(|_| Comparison::Exact(ValueComparer::Boolean(false))));
+    let null = just("null").map(|_| Comparison::Exact(ValueComparer::Null()));
 
-    return object_parser(element_parser.clone())
+    return ignore_value_parser()
+        .or(object_parser(element_parser.clone()))
         .or(array_parser(element_parser.clone()))
         .or(string_value_parser())
         .or(number)
@@ -35,39 +88,46 @@ fn value_parser(
         .or(null);
 }
 
+fn ignore_value_parser() -> impl Parser<char, Comparison, Error = Simple<char>> {
+    return whitespace()
+        .then(just("_"))
+        .then_ignore(whitespace())
+        .map(|_| Comparison::Ignore);
+}
+
 fn object_parser(
-    element_parser: impl Parser<char, Element, Error = Simple<char>> + Clone,
-) -> impl Parser<char, Value, Error = Simple<char>> {
+    element_parser: impl Parser<char, ElementComparer, Error = Simple<char>> + Clone,
+) -> impl Parser<char, Comparison, Error = Simple<char>> {
     let empty = whitespace().delimited_by(just("{"), just("}")).map(|_| {
-        Value::Object(Object {
+        Comparison::Exact(ValueComparer::Object(ObjectComparer {
             members: Vec::new(),
-        })
+        }))
     });
 
     let members = members_parser(element_parser)
         .delimited_by(just("{"), just("}"))
-        .map(|members| Value::Object(Object { members }));
+        .map(|members| Comparison::Exact(ValueComparer::Object(ObjectComparer { members })));
 
     return empty.or(members);
 }
 
 fn members_parser(
-    element_parser: impl Parser<char, Element, Error = Simple<char>> + Clone,
-) -> impl Parser<char, Vec<Member>, Error = Simple<char>> {
+    element_parser: impl Parser<char, ElementComparer, Error = Simple<char>> + Clone,
+) -> impl Parser<char, Vec<MemberComparer>, Error = Simple<char>> {
     return member_parser(element_parser)
         .separated_by(just(","))
         .collect();
 }
 
 fn member_parser(
-    element_parser: impl Parser<char, Element, Error = Simple<char>>,
-) -> impl Parser<char, Member, Error = Simple<char>> {
+    element_parser: impl Parser<char, ElementComparer, Error = Simple<char>>,
+) -> impl Parser<char, MemberComparer, Error = Simple<char>> {
     return whitespace()
         .ignore_then(member_key_parser())
         .then_ignore(whitespace())
         .then_ignore(just(":"))
         .then(element_parser)
-        .map(|(key, value)| Member { key, value });
+        .map(|(key, value)| MemberComparer { key, value });
 }
 
 fn member_key_parser() -> impl Parser<char, String, Error = Simple<char>> {
@@ -75,40 +135,40 @@ fn member_key_parser() -> impl Parser<char, String, Error = Simple<char>> {
 }
 
 fn array_parser(
-    element_parser: impl Parser<char, Element, Error = Simple<char>> + Clone,
-) -> impl Parser<char, Value, Error = Simple<char>> {
+    element_parser: impl Parser<char, ElementComparer, Error = Simple<char>> + Clone,
+) -> impl Parser<char, Comparison, Error = Simple<char>> {
     let empty = whitespace().delimited_by(just("["), just("]")).map(|_| {
-        Value::Array(Array {
+        Comparison::Exact(ValueComparer::Array(ArrayComparer {
             elements: Vec::new(),
-        })
+        }))
     });
 
     let elements = elements_parser(element_parser)
         .delimited_by(just("["), just("]"))
-        .map(|elements| Value::Array(Array { elements }));
+        .map(|elements| Comparison::Exact(ValueComparer::Array(ArrayComparer { elements })));
 
     return empty.or(elements);
 }
 
 fn elements_parser(
-    element_parser: impl Parser<char, Element, Error = Simple<char>> + Clone,
-) -> impl Parser<char, Vec<Element>, Error = Simple<char>> {
+    element_parser: impl Parser<char, ElementComparer, Error = Simple<char>> + Clone,
+) -> impl Parser<char, Vec<ElementComparer>, Error = Simple<char>> {
     return element_parser.separated_by(just(",")).collect();
 }
 
-fn element_parser() -> impl Parser<char, Element, Error = Simple<char>> {
+fn element_parser() -> impl Parser<char, ElementComparer, Error = Simple<char>> {
     return recursive(|element_parser| {
         whitespace()
             .ignore_then(value_parser(element_parser))
             .then_ignore(whitespace())
-            .map(|value| Element { value })
+            .map(|value| ElementComparer { value })
     });
 }
 
-fn string_value_parser() -> impl Parser<char, Value, Error = Simple<char>> {
+fn string_value_parser() -> impl Parser<char, Comparison, Error = Simple<char>> {
     return characters_parser(0)
         .delimited_by(just('"'), just('"'))
-        .map(|c| Value::String(c.to_string()));
+        .map(|c| Comparison::Exact(ValueComparer::String(c.to_string())));
 }
 
 fn characters_parser(minimum_repeat: usize) -> impl Parser<char, String, Error = Simple<char>> {

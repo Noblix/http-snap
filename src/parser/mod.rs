@@ -2,6 +2,7 @@
 mod header_parser;
 mod url_parser;
 mod variable_parser;
+mod snapshot_parser;
 
 use crate::types::*;
 use chumsky::error::Simple;
@@ -14,11 +15,13 @@ fn parser() -> impl Parser<char, HttpFile, Error = Simple<char>> {
         .then(url_parser::url_parser())
         .then(header_parser::headers_parser())
         .then(body_parser::body_parser())
-        .map(|(((verb, url), headers), body)| HttpFile {
+        .then(snapshot_parser::snapshot_parser())
+        .map(|((((verb, url), headers), body), snapshot)| HttpFile {
             verb,
             url,
             headers,
             body,
+            snapshot,
         });
 
     return base;

@@ -22,6 +22,7 @@ pub struct SnapResponse {
 #[derive(Debug, Eq, PartialEq)]
 pub enum HttpVerb {
     GET,
+    PATCH,
     POST,
     PUT,
 }

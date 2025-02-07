@@ -5,6 +5,7 @@ use crate::types::HttpVerb;
 
 pub(crate) fn verb_parser() -> impl Parser<char, HttpVerb, Error = Simple<char>> {
     let verb = (just("GET").map(|_| HttpVerb::GET))
+        .or(just("PATCH").map(|_| HttpVerb::PATCH))
         .or(just("POST").map(|_| HttpVerb::POST))
         .or(just("PUT").map(|_| HttpVerb::PUT))
         .padded();

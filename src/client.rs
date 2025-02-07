@@ -35,7 +35,15 @@ impl HttpClient {
                     .headers(headers)
                     .send()
                     .await?
-            }
+            },
+            HttpVerb::PATCH => {
+                self.client
+                    .patch(&http_file.url)
+                    .headers(headers)
+                    .body(body)
+                    .send()
+                    .await?
+            },
             HttpVerb::POST => {
                 self.client
                     .post(&http_file.url)
@@ -43,8 +51,15 @@ impl HttpClient {
                     .body(body)
                     .send()
                     .await?
+            },
+            HttpVerb::PUT => {
+                self.client
+                    .put(&http_file.url)
+                    .headers(headers)
+                    .body(body)
+                    .send()
+                    .await?
             }
-            _ => panic!("Unknown verb!"),
         };
 
         let status = response.status().as_u16();

@@ -16,7 +16,7 @@ pub(crate) fn replace_variables(input: &str) -> String {
             }
         }
 
-        let verb_options = ["GET", "POST", "PATCH"];
+        let verb_options = ["GET", "PATCH", "POST", "PUT"];
         for prefix in verb_options {
             if line.starts_with(prefix) {
                 break;

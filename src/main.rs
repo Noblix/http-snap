@@ -6,19 +6,33 @@ use std::io::Write;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Options that should come from CLI
-    let path_to_file = "http-examples/post-simple.http";
+    let path_to_file = "http-examples/todo-app/cannot_create_todo_item_with_no_text.http";
     let execution_mode = Mode::CompareSnapshot;
 
     let raw_text = read_to_string(path_to_file).unwrap();
     let text = raw_text.trim_start_matches("\u{feff}");
-    let http_file = parser::parse_file(text).unwrap();
-    println!("{:?}", http_file);
+    let request_texts: Vec<&str> = text.split("###").map(|s| s.trim()).collect();
 
-    let response = client::send_request(&http_file).await?;
-    let parsed_response = parser::parse_response(response).await?;
+    let client = client::HttpClient::new();
+    let mut http_files = Vec::new();
+    let mut parsed_responses = Vec::new();
+    for request_text in request_texts.clone() {
+        let http_file = parser::parse_file(request_text).unwrap();
+
+        let response = client.send_request(&http_file).await?;
+        let parsed_response = parser::parse_response(&response).await?;
+
+        http_files.push(http_file);
+        parsed_responses.push(parsed_response);
+    }
 
     if execution_mode == Mode::UpdateSnapshot {
-        let merged = create_content_with_snapshot(&raw_text, &parsed_response);
+        let mut merges = Vec::new();
+        for (i, parsed_response) in parsed_responses.iter().enumerate() {
+            let merged = create_content_with_snapshot(request_texts[i], &parsed_response);
+            merges.push(merged);
+        }
+        let merged = merges.join("\n\n###\n\n");
 
         let mut file = File::options()
             .write(true)
@@ -27,12 +41,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         file.write_all(&merged.as_bytes())
             .expect("Unable to write snapshot");
         file.flush()?;
-    } else {
-        let fits_snapshot = comparer::compare_to_snapshot(&http_file.snapshot, &parsed_response);
-        if fits_snapshot {
-            println!("Response matches snapshot")
-        } else {
-            println!("Response does NOT match snapshot");
+    } else if execution_mode == Mode::CompareSnapshot {
+        for (i, parsed_response) in parsed_responses.iter().enumerate() {
+            let fits_snapshot = comparer::compare_to_snapshot(&http_files[i].snapshot, &parsed_response);
+            if fits_snapshot {
+                println!("Response {i} matches snapshot")
+            } else {
+                println!("Response {i} does NOT match snapshot");
+            }
         }
     }
 

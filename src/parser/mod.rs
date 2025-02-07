@@ -7,7 +7,7 @@ mod snapshot_parser;
 use crate::types::*;
 use chumsky::error::Simple;
 use chumsky::Parser;
-use reqwest::Response;
+use crate::client::HttpResponse;
 
 fn parser() -> impl Parser<char, HttpFile, Error = Simple<char>> {
     let base = variable_parser::variables_skipper()
@@ -34,15 +34,12 @@ pub fn parse_file(input: &str) -> Result<HttpFile, Vec<Simple<char>>> {
 }
 
 pub async fn parse_response(
-    response: Response,
+    response: &HttpResponse,
 ) -> Result<SnapResponse, Box<dyn std::error::Error>> {
-    let status = response.status().as_u16();
-    let headers = response.headers().clone();
-    let raw_body = response.text().await?;
-    let body = body_parser::body_parser().parse(raw_body).unwrap();
+    let body = body_parser::body_parser().parse(response.body.clone()).unwrap();
     return Ok(SnapResponse {
-        status,
-        headers,
+        status: response.status,
+        headers: response.headers.clone(),
         body,
     });
 }

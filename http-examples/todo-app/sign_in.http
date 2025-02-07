@@ -1,0 +1,17 @@
+﻿POST https://localhost:50001/sign-in
+Accept: application/json
+Content-Type: application/json
+
+SNAPSHOT:
+status: 200
+
+content-type: text/html; charset=utf-8
+date: Fri, 07 Feb 2025 18:37:16 GMT
+server: Kestrel
+cache-control: no-cache, no-store
+pragma: no-cache
+set-cookie: .AspNetCore.Antiforgery.lea8d-YBPks=CfDJ8DaCbDI1gvVBldGD9K2_Zp3KUE4lIBhC3q0aayhRD3tSKIjTLvrMF6HKOeLdPNAc4fPv4ifXYypB_nQb6ZetCurVoPkPAOX7LzNs8bPKrwOflPX3MH1SDTQLhak-83Arkr7VwVIyVnhHVR5CMXQDkmY; path=/; samesite=strict; httponly
+transfer-encoding: chunked
+x-frame-options: SAMEORIGIN
+
+null

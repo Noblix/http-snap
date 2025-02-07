@@ -52,7 +52,9 @@ fn headers_parser() -> impl Parser<char, Vec<HeaderComparer>, Error = Simple<cha
     let header_value = filter(|x: &char| x != &'\r' && x != &'\n' && x != &'{' && x != &'}')
         .repeated()
         .at_least(1)
-        .map(|chars: Vec<char>| Comparison::Exact(ValueComparer::String(chars.into_iter().collect::<String>())));
+        .map(|chars: Vec<char>| {
+            Comparison::Exact(ValueComparer::String(chars.into_iter().collect::<String>()))
+        });
 
     let header_key = text::ident()
         .then(filter(|c: &char| c.is_ascii_alphanumeric() || c == &'-').repeated())
@@ -62,10 +64,7 @@ fn headers_parser() -> impl Parser<char, Vec<HeaderComparer>, Error = Simple<cha
         .then_ignore(just(':'))
         .then_ignore(repeated_spaces)
         .then(ignore_comparison_parser().or(header_value)))
-    .map(|(name, value)| HeaderComparer {
-        name,
-        value,
-    })
+    .map(|(name, value)| HeaderComparer { name, value })
     .padded()
     .repeated();
 

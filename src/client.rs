@@ -1,27 +1,61 @@
 ﻿use crate::types::{Header, HttpFile, HttpVerb, Json};
 use reqwest::header::{HeaderMap, HeaderName};
-use reqwest::Response;
+use reqwest::{Client};
 
-pub async fn send_request(http_file: &HttpFile) -> Result<Response, Box<dyn std::error::Error>> {
-    let headers = get_headers(&http_file.headers);
-    let body = get_json(&http_file.body);
+pub struct HttpClient {
+    client: Client,
+}
 
-    let client = reqwest::Client::new();
+pub struct HttpResponse {
+    pub status: u16,
+    pub headers: HeaderMap,
+    pub body: String,
+}
 
-    let response = match http_file.verb {
-        HttpVerb::GET => client.get(&http_file.url).headers(headers).send().await?,
-        HttpVerb::POST => {
-            client
-                .post(&http_file.url)
-                .headers(headers)
-                .body(body)
-                .send()
-                .await?
-        }
-        _ => panic!("Unknown verb!"),
-    };
+impl HttpClient {
+    pub fn new() -> Self {
+        let client = Client::builder()
+            .cookie_store(true)
+            .build()
+            .expect("Failed to build client");
+        return Self { client };
+    }
 
-    return Ok(response);
+    pub async fn send_request(
+        &self,
+        http_file: &HttpFile,
+    ) -> Result<HttpResponse, Box<dyn std::error::Error>> {
+        let headers = get_headers(&http_file.headers);
+        let body = get_json(&http_file.body);
+
+        let response = match http_file.verb {
+            HttpVerb::GET => {
+                self.client
+                    .get(&http_file.url)
+                    .headers(headers)
+                    .send()
+                    .await?
+            }
+            HttpVerb::POST => {
+                self.client
+                    .post(&http_file.url)
+                    .headers(headers)
+                    .body(body)
+                    .send()
+                    .await?
+            }
+            _ => panic!("Unknown verb!"),
+        };
+
+        let status = response.status().as_u16();
+        let headers = response.headers().clone();
+        let body = response.text().await?;
+        return Ok(HttpResponse {
+            status,
+            headers,
+            body,
+        });
+    }
 }
 
 fn get_headers(request_headers: &Vec<Header>) -> HeaderMap {

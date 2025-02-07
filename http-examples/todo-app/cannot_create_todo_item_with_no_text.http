@@ -1,0 +1,39 @@
+POST https://localhost:50001/sign-in
+
+SNAPSHOT:
+status: 200
+
+content-type: text/html; charset=utf-8
+date: _
+server: Kestrel
+cache-control: no-cache, no-store
+pragma: no-cache
+set-cookie: _
+transfer-encoding: chunked
+x-frame-options: SAMEORIGIN
+
+null
+
+###
+
+POST https://localhost:50001/api/items
+Content-Type: application/json; charset=utf-8
+
+{
+  "text": ""
+}
+
+SNAPSHOT:
+status: 400
+
+content-type: application/problem+json
+date: _
+server: Kestrel
+transfer-encoding: chunked
+
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "No item text specified."
+}

@@ -1,16 +1,10 @@
-POST https://localhost:50001/sign-in
+include-headers: false
+
+@path = sign-in
+POST https://localhost:50001/{{path}}
 
 SNAPSHOT:
 status: 200
-
-content-type: text/html; charset=utf-8
-date: _
-server: Kestrel
-cache-control: no-cache, no-store
-pragma: no-cache
-set-cookie: _
-transfer-encoding: chunked
-x-frame-options: SAMEORIGIN
 
 null
 

@@ -5,6 +5,7 @@ use crate::snapshot_types::Snapshot;
 
 #[derive(Debug)]
 pub struct HttpFile {
+    pub options: SnapOptions,
     pub verb: HttpVerb,
     pub url: String,
     pub headers: Vec<Header>,
@@ -14,9 +15,15 @@ pub struct HttpFile {
 
 #[derive(Debug)]
 pub struct SnapResponse {
+    pub options: SnapOptions,
     pub status: u16,
     pub headers: HeaderMap,
     pub body: Json
+}
+
+#[derive(Debug, Clone)]
+pub struct SnapOptions {
+    pub include_headers: bool,
 }
 
 #[derive(Debug, Eq, PartialEq)]

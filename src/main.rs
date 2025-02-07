@@ -1,5 +1,5 @@
 use http_snap::{client, comparer, merger, parser};
-use std::fs::{read_to_string};
+use std::fs::read_to_string;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -18,7 +18,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let http_file = parser::parse_file(request_text).unwrap();
 
         let response = client.send_request(&http_file).await?;
-        let parsed_response = parser::parse_response(&response).await?;
+        let parsed_response = parser::parse_response(http_file.options.clone(), &response).await?;
 
         http_files.push(http_file);
         parsed_responses.push(parsed_response);

@@ -29,10 +29,12 @@ fn compare_to_snapshot(snapshot: &Snapshot, response: &SnapResponse) -> bool {
         return false;
     }
 
-    let headers_match = match_headers(&snapshot.headers, &response.headers);
-    if !headers_match {
-        println!("Headers did not match snapshot");
-        return false;
+    if response.options.include_headers {
+        let headers_match = match_headers(&snapshot.headers, &response.headers);
+        if !headers_match {
+            println!("Headers did not match snapshot");
+            return false;
+        }
     }
 
     let body_match = match_body(&snapshot.body, &response.body);
@@ -85,6 +87,11 @@ fn match_headers(snapshot_headers: &Vec<HeaderComparer>, response_header: &Heade
             );
             return false;
         }
+    }
+    
+    if response_header.len() > snapshot_headers.len() {
+        println!("Response contains headers not present in snapshot");
+        return false;
     }
 
     return true;

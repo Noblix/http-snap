@@ -1,22 +1,25 @@
 ﻿mod body_parser;
 mod header_parser;
+mod option_parser;
+mod snapshot_parser;
 mod url_parser;
 mod variable_parser;
-mod snapshot_parser;
 
+use crate::client::HttpResponse;
 use crate::types::*;
 use chumsky::error::Simple;
 use chumsky::Parser;
-use crate::client::HttpResponse;
 
 fn parser() -> impl Parser<char, HttpFile, Error = Simple<char>> {
-    let base = variable_parser::variables_skipper()
-        .ignore_then(url_parser::verb_parser())
+    let base = option_parser::options_parser()
+        .then_ignore(variable_parser::variables_skipper())
+        .then(url_parser::verb_parser())
         .then(url_parser::url_parser())
         .then(header_parser::headers_parser())
         .then(body_parser::body_parser())
         .then(snapshot_parser::snapshot_parser())
-        .map(|((((verb, url), headers), body), snapshot)| HttpFile {
+        .map(|(((((options, verb), url), headers), body), snapshot)| HttpFile {
+            options,
             verb,
             url,
             headers,
@@ -34,10 +37,14 @@ pub fn parse_file(input: &str) -> Result<HttpFile, Vec<Simple<char>>> {
 }
 
 pub async fn parse_response(
+    options: SnapOptions,
     response: &HttpResponse,
 ) -> Result<SnapResponse, Box<dyn std::error::Error>> {
-    let body = body_parser::body_parser().parse(response.body.clone()).unwrap();
+    let body = body_parser::body_parser()
+        .parse(response.body.clone())
+        .unwrap();
     return Ok(SnapResponse {
+        options,
         status: response.status,
         headers: response.headers.clone(),
         body,

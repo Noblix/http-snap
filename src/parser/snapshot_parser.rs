@@ -8,25 +8,30 @@ use std::ops::Add;
 
 // Based on https://www.json.org/json-en.html
 pub(crate) fn snapshot_parser() -> impl Parser<char, Snapshot, Error = Simple<char>> {
-    let no_body = end().map(|_| JsonComparer {
-        element: ElementComparer {
-            value: Comparison::Exact(ValueComparer::Null()),
+    let no_snapshot = end().map(|_| Snapshot {
+        status: Comparison::Exact(ValueComparer::Null()),
+        headers: Vec::new(),
+        body: JsonComparer {
+            element: ElementComparer {
+                value: Comparison::Exact(ValueComparer::Null()),
+            },
         },
     });
 
-    return whitespace()
-        .ignore_then(just("SNAPSHOT:"))
+    let snapshot = just("SNAPSHOT:")
         .ignore_then(whitespace())
         .ignore_then(status_parser())
         .then_ignore(whitespace())
         .then(headers_parser())
         .then_ignore(whitespace())
-        .then(json_parser().or(no_body))
+        .then(json_parser())
         .map(|((status, headers), body)| Snapshot {
             status,
             headers,
             body,
         });
+
+    return whitespace().ignore_then(no_snapshot.or(snapshot));
 }
 
 fn status_parser() -> impl Parser<char, Comparison, Error = Simple<char>> {

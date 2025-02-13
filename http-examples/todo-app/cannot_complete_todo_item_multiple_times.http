@@ -20,24 +20,46 @@ SNAPSHOT:
 status: 201
 
 content-type: application/json; charset=utf-8
-date: Thu, 13 Feb 2025 13:11:23 GMT
+date: _
 server: Kestrel
-location: /api/items/2fa81f41-4d4e-4abb-8347-360b16763a12
+location: _
 transfer-encoding: chunked
 
 {
-  "id": "2fa81f41-4d4e-4abb-8347-360b16763a12"
+  "id": _
 }
 
 ###
 
-POST https://localhost:50001{{previous.headers["location"]}}/complete
+@location = {{previous.headers["location"]}}
+
+POST https://localhost:50001{{location}}/complete
 Content-Type: application/json; charset=utf-8
 
 SNAPSHOT:
 status: 204
 
-date: Thu, 13 Feb 2025 13:12:17 GMT
+date: _
 server: Kestrel
 
 null
+
+###
+
+POST https://localhost:50001{{location}}/complete
+Content-Type: application/json; charset=utf-8
+
+SNAPSHOT:
+status: 400
+
+content-type: application/problem+json
+date: _
+server: Kestrel
+transfer-encoding: chunked
+
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "Item already completed."
+}

@@ -8,8 +8,7 @@ pub mod snapshot_types;
 pub mod types;
 
 pub async fn run(
-    path_to_file: &str,
-    execution_mode: types::Mode,
+    path_to_file: &str
 ) -> Result<(), Box<dyn std::error::Error>> {
     let raw_text = read_to_string(path_to_file).unwrap();
     let text = raw_text.trim_start_matches("\u{feff}");
@@ -28,10 +27,10 @@ pub async fn run(
         parsed_responses.push(parsed_response);
     }
 
-    if execution_mode == types::Mode::UpdateSnapshot {
+    let are_equal = comparer::compare_to_snapshots(&http_files, &parsed_responses);
+
+    if !are_equal {
         merger::merge_snapshots_into_files(parsed_responses, request_texts, path_to_file)?;
-    } else if execution_mode == types::Mode::CompareSnapshot {
-        comparer::compare_to_snapshots(&http_files, &parsed_responses);
     }
 
     return Ok(());

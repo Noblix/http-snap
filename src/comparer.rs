@@ -7,15 +7,18 @@ use crate::types::{Array, Element, HttpFile, Json, Object, SnapResponse, Value};
 use reqwest::header::HeaderMap;
 use std::collections::HashMap;
 
-pub fn compare_to_snapshots(http_files: &Vec<HttpFile>, parsed_responses: &Vec<SnapResponse>) {
+pub fn compare_to_snapshots(http_files: &Vec<HttpFile>, parsed_responses: &Vec<SnapResponse>) -> bool {
     for (i, parsed_response) in parsed_responses.iter().enumerate() {
         let fits_snapshot = compare_to_snapshot(&http_files[i].snapshot, parsed_response);
         if fits_snapshot {
             println!("Response {i} matches snapshot")
         } else {
             println!("Response {i} does NOT match snapshot");
+            return false;
         }
     }
+
+    return true;
 }
 
 fn compare_to_snapshot(snapshot: &Snapshot, response: &SnapResponse) -> bool {

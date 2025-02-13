@@ -3,12 +3,6 @@ use serde::ser::{SerializeMap, SerializeSeq, Serializer};
 use serde::Serialize;
 use crate::snapshot_types::Snapshot;
 
-#[derive(Debug, Eq, PartialEq)]
-pub enum Mode {
-    UpdateSnapshot,
-    CompareSnapshot,
-}
-
 #[derive(Debug)]
 pub struct HttpFile {
     pub options: SnapOptions,

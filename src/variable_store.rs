@@ -64,7 +64,7 @@ fn extract_variables(text: &str) -> HashMap<String, String> {
             }
         }
 
-        let verb_options = ["GET", "PATCH", "POST", "PUT"];
+        let verb_options = ["GET", "DELETE", "PATCH", "POST", "PUT"];
         for prefix in verb_options {
             if line.starts_with(prefix) {
                 break;

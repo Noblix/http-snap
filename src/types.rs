@@ -29,6 +29,7 @@ pub struct SnapOptions {
 #[derive(Debug, Eq, PartialEq)]
 pub enum HttpVerb {
     GET,
+    DELETE,
     PATCH,
     POST,
     PUT,

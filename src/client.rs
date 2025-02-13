@@ -1,6 +1,6 @@
 ﻿use crate::types::{Header, HttpFile, HttpVerb, Json};
 use reqwest::header::{HeaderMap, HeaderName};
-use reqwest::{Client};
+use reqwest::Client;
 
 pub struct HttpClient {
     client: Client,
@@ -28,39 +28,14 @@ impl HttpClient {
         let headers = get_headers(&http_file.headers);
         let body = get_json(&http_file.body);
 
-        let response = match http_file.verb {
-            HttpVerb::GET => {
-                self.client
-                    .get(&http_file.url)
-                    .headers(headers)
-                    .send()
-                    .await?
-            },
-            HttpVerb::PATCH => {
-                self.client
-                    .patch(&http_file.url)
-                    .headers(headers)
-                    .body(body)
-                    .send()
-                    .await?
-            },
-            HttpVerb::POST => {
-                self.client
-                    .post(&http_file.url)
-                    .headers(headers)
-                    .body(body)
-                    .send()
-                    .await?
-            },
-            HttpVerb::PUT => {
-                self.client
-                    .put(&http_file.url)
-                    .headers(headers)
-                    .body(body)
-                    .send()
-                    .await?
-            }
+        let verb_setup = match http_file.verb {
+            HttpVerb::GET => self.client.get(&http_file.url),
+            HttpVerb::DELETE => self.client.delete(&http_file.url),
+            HttpVerb::PATCH => self.client.patch(&http_file.url),
+            HttpVerb::POST => self.client.post(&http_file.url),
+            HttpVerb::PUT => self.client.put(&http_file.url),
         };
+        let response = verb_setup.headers(headers).body(body).send().await?;
 
         let status = response.status().as_u16();
         let headers = response.headers().clone();

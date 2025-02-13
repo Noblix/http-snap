@@ -10,3 +10,4 @@ tokio = { version = "1", features = ["full"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 serde = { version = "1.0.217", features = ["derive"] }
 mockito = "1.6.1"
+regex = "1.11.1"

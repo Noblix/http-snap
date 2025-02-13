@@ -1,0 +1,43 @@
+include-headers: false
+
+POST https://localhost:50001/sign-in
+
+SNAPSHOT:
+status: 200
+
+null
+
+###
+
+POST https://localhost:50001/api/items
+Content-Type: application/json; charset=utf-8
+
+{
+  "text": "Something"
+}
+
+SNAPSHOT:
+status: 201
+
+content-type: application/json; charset=utf-8
+date: Thu, 13 Feb 2025 13:11:23 GMT
+server: Kestrel
+location: /api/items/2fa81f41-4d4e-4abb-8347-360b16763a12
+transfer-encoding: chunked
+
+{
+  "id": "2fa81f41-4d4e-4abb-8347-360b16763a12"
+}
+
+###
+
+POST https://localhost:50001{{previous.headers["location"]}}/complete
+Content-Type: application/json; charset=utf-8
+
+SNAPSHOT:
+status: 204
+
+date: Thu, 13 Feb 2025 13:12:17 GMT
+server: Kestrel
+
+null

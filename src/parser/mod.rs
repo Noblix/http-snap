@@ -30,8 +30,8 @@ fn parser() -> impl Parser<char, HttpFile, Error = Simple<char>> {
     return base;
 }
 
-pub fn parse_file(input: &str) -> Result<HttpFile, Vec<Simple<char>>> {
-    let without_variables = variable_parser::replace_variables(input);
+pub fn parse_file(input: &str, previous: Option<&SnapResponse>) -> Result<HttpFile, Vec<Simple<char>>> {
+    let without_variables = variable_parser::replace_variables(input, previous);
     let result = parser().parse(without_variables);
     return result;
 }

@@ -18,7 +18,8 @@ pub async fn run(
     let mut http_files = Vec::new();
     let mut parsed_responses = Vec::new();
     for request_text in request_texts.clone() {
-        let http_file = parser::parse_file(request_text).unwrap();
+        let previous = parsed_responses.last();
+        let http_file = parser::parse_file(request_text, previous).unwrap();
 
         let response = client.send_request(&http_file).await?;
         let parsed_response = parser::parse_response(http_file.options.clone(), &response).await?;

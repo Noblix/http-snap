@@ -3,13 +3,17 @@ use std::fs::File;
 use std::io::Write;
 
 pub fn merge_snapshots_into_files(
-    parsed_responses: Vec<SnapResponse>,
-    request_texts: Vec<&str>,
     path_to_file: &str,
+    request_texts: &Vec<&str>,
+    index: usize,
+    parsed_response: SnapResponse,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut merges = Vec::new();
-    for (i, parsed_response) in parsed_responses.iter().enumerate() {
-        let merged = create_content_with_snapshot(request_texts[i], &parsed_response);
+    for (i, raw_text) in request_texts.iter().enumerate() {
+        let mut merged = raw_text.to_string();
+        if i == index {
+            merged = create_content_with_snapshot(raw_text, &parsed_response);
+        }
         merges.push(merged);
     }
     let merged = merges.join("\n\n###\n\n");
@@ -27,8 +31,7 @@ pub fn merge_snapshots_into_files(
 
 fn create_content_with_snapshot(raw_text: &str, response: &SnapResponse) -> String {
     let parts_of_file: Vec<&str> = raw_text.split("SNAPSHOT:").collect();
-    let mut file_appending =
-        "SNAPSHOT:\nstatus: ".to_owned() + &response.status.to_string();
+    let mut file_appending = "SNAPSHOT:\nstatus: ".to_owned() + &response.status.to_string();
 
     if response.options.include_headers {
         file_appending += "\n\n";

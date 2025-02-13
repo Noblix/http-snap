@@ -3,25 +3,11 @@
     ObjectComparer, Snapshot, ValueComparer,
 };
 use crate::types;
-use crate::types::{Array, Element, HttpFile, Json, Object, SnapResponse, Value};
+use crate::types::{Array, Element, Json, Object, SnapResponse, Value};
 use reqwest::header::HeaderMap;
 use std::collections::HashMap;
 
-pub fn compare_to_snapshots(http_files: &Vec<HttpFile>, parsed_responses: &Vec<SnapResponse>) -> bool {
-    for (i, parsed_response) in parsed_responses.iter().enumerate() {
-        let fits_snapshot = compare_to_snapshot(&http_files[i].snapshot, parsed_response);
-        if fits_snapshot {
-            println!("Response {i} matches snapshot")
-        } else {
-            println!("Response {i} does NOT match snapshot");
-            return false;
-        }
-    }
-
-    return true;
-}
-
-fn compare_to_snapshot(snapshot: &Snapshot, response: &SnapResponse) -> bool {
+pub fn compare_to_snapshot(snapshot: &Snapshot, response: &SnapResponse) -> bool {
     let status_matches = match_status(&snapshot.status, &response.status);
     if !status_matches {
         println!("Status did not match snapshot");

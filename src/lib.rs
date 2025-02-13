@@ -1,4 +1,5 @@
-﻿use std::fs::read_to_string;
+﻿use crate::types::SnapResponse;
+use std::fs::read_to_string;
 
 pub mod client;
 pub mod comparer;
@@ -6,6 +7,7 @@ pub mod merger;
 pub mod parser;
 pub mod snapshot_types;
 pub mod types;
+pub mod variable_store;
 
 pub async fn run(
     path_to_file: &str
@@ -15,23 +17,23 @@ pub async fn run(
     let request_texts: Vec<&str> = text.split("###").map(|s| s.trim()).collect();
 
     let client = client::HttpClient::new();
-    let mut http_files = Vec::new();
-    let mut parsed_responses = Vec::new();
-    for request_text in request_texts.clone() {
-        let previous = parsed_responses.last();
-        let http_file = parser::parse_file(request_text, previous).unwrap();
+    let mut variable_store = variable_store::VariableStore::new();
+    let mut previous: Option<SnapResponse> = None;
+    for (index, request_text) in request_texts.clone().iter().enumerate() {
+        let text_without_variables = variable_store.replace_variables(request_text, &previous);
+        let http_file = parser::parse_file(&text_without_variables).unwrap();
 
         let response = client.send_request(&http_file).await?;
-        let parsed_response = parser::parse_response(http_file.options.clone(), &response).await?;
+        let parsed_response = parser::parse_response(http_file.options, &response).await?;
 
-        http_files.push(http_file);
-        parsed_responses.push(parsed_response);
-    }
+        let are_equal = comparer::compare_to_snapshot(&http_file.snapshot, &parsed_response);
 
-    let are_equal = comparer::compare_to_snapshots(&http_files, &parsed_responses);
-
-    if !are_equal {
-        merger::merge_snapshots_into_files(parsed_responses, request_texts, path_to_file)?;
+        if are_equal {
+            previous = Some(parsed_response);
+        } else {
+            merger::merge_snapshots_into_files(path_to_file, &request_texts, index, parsed_response)?;
+            break;
+        }
     }
 
     return Ok(());

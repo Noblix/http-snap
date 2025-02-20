@@ -1,7 +1,7 @@
-﻿use reqwest::header::HeaderMap;
+﻿use crate::snapshot_types::Snapshot;
+use reqwest::header::HeaderMap;
 use serde::ser::{SerializeMap, SerializeSeq, Serializer};
 use serde::Serialize;
-use crate::snapshot_types::Snapshot;
 
 #[derive(Debug)]
 pub struct HttpFile {
@@ -69,6 +69,12 @@ impl Serialize for Element {
     }
 }
 
+impl Element {
+    pub fn to_insertion_string(&self, nested: bool) -> String {
+        return self.value.to_insertion_string(nested);
+    }
+}
+
 #[derive(Debug)]
 pub enum Value {
     Object(Object),
@@ -95,6 +101,25 @@ impl Serialize for Value {
     }
 }
 
+impl Value {
+    pub fn to_insertion_string(&self, nested: bool) -> String {
+        match self {
+            Value::Object(val) => val.to_insertion_string(),
+            Value::Array(val) => val.to_insertion_string(),
+            Value::String(val) => {
+                if nested {
+                    ["\"", val, "\""].concat()
+                } else {
+                    val.clone()
+                }
+            }
+            Value::Number(val) => val.to_insertion_string(),
+            Value::Boolean(val) => val.to_string(),
+            Value::Null() => "null".to_string(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Object {
     pub members: Vec<Member>,
@@ -113,10 +138,35 @@ impl Serialize for Object {
     }
 }
 
+impl Object {
+    pub fn to_insertion_string(&self) -> String {
+        let mut result = "{".to_string();
+        let mut member_strings = Vec::new();
+        for member in &self.members {
+            member_strings.push(member.to_insertion_string(true))
+        }
+        result += &member_strings.join("\n,");
+        result += "}";
+        return result;
+    }
+}
+
 #[derive(Debug)]
 pub struct Member {
     pub key: String,
     pub value: Element,
+}
+
+impl Member {
+    pub fn to_insertion_string(&self, nested: bool) -> String {
+        return [
+            "\"",
+            &self.key,
+            "\": ",
+            &self.value.to_insertion_string(nested),
+        ]
+        .concat();
+    }
 }
 
 #[derive(Debug)]
@@ -137,6 +187,19 @@ impl Serialize for Array {
     }
 }
 
+impl Array {
+    pub fn to_insertion_string(&self) -> String {
+        let mut result = "[".to_string();
+        let mut element_strings = Vec::new();
+        for element in &self.elements {
+            element_strings.push(element.to_insertion_string(true))
+        }
+        result += &element_strings.join("\n,");
+        result += "]";
+        return result;
+    }
+}
+
 #[derive(Debug)]
 pub enum Number {
     Int(i64),
@@ -153,6 +216,16 @@ impl Serialize for Number {
             Number::Int(val) => serializer.serialize_i64(val.clone()),
             Number::Fraction(val) => serializer.serialize_f64(val.clone()),
             Number::Exponent(val) => serializer.serialize_f64(val.parse::<f64>().unwrap()),
+        }
+    }
+}
+
+impl Number {
+    pub fn to_insertion_string(&self) -> String {
+        match self {
+            Number::Int(val) => val.to_string(),
+            Number::Fraction(val) => val.to_string(),
+            Number::Exponent(val) => val.clone(),
         }
     }
 }

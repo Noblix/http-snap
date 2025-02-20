@@ -1,4 +1,4 @@
-﻿use crate::types::SnapResponse;
+﻿use crate::types::{SnapResponse, Value};
 use regex::Regex;
 use std::collections::HashMap;
 
@@ -14,10 +14,11 @@ impl VariableStore {
     }
 
     pub fn replace_variables(&mut self, text: &str, previous: &Option<SnapResponse>) -> String {
-        let previous_replaced = replace_previous(text, &previous);
-        let new_variables = extract_variables(&previous_replaced);
+        let previous_headers_replaced = replace_previous_headers(text, &previous);
+        let previous_body_replaced = replace_previous_body(&previous_headers_replaced, &previous);
+        let new_variables = extract_variables(&previous_body_replaced);
         self.variables.extend(new_variables.into_iter());
-        let text_without_variables = self.replace_local_variables(&previous_replaced);
+        let text_without_variables = self.replace_local_variables(&previous_body_replaced);
         return text_without_variables;
     }
 
@@ -31,7 +32,39 @@ impl VariableStore {
     }
 }
 
-fn replace_previous(text: &str, previous: &Option<SnapResponse>) -> String {
+fn replace_previous_body(text: &str, previous: &Option<SnapResponse>) -> String {
+    let mut result: String = text.to_string();
+
+    if let Some(previous) = previous {
+        let body_regex = Regex::new(r#"\{\{previous\.body\.([^\n]+)\}\}"#).unwrap();
+        let body_properties = body_regex.captures_iter(text).map(|c| c.extract());
+        for (_, [path_to_property]) in body_properties {
+            let parts: Vec<&str> = path_to_property.split(".").collect();
+            let mut current_value = &previous.body.element.value;
+            for part in parts {
+                match current_value {
+                    Value::Object(object) => {
+                        current_value = if let Some(member) =
+                            object.members.iter().find(|member| member.key == part)
+                        {
+                            &member.value.value
+                        } else {
+                            panic!("Unknown member")
+                        }
+                    }
+                    _ => panic!("Unsupported field identification"),
+                }
+            }
+
+            let replace = ["{{previous.body.", path_to_property, "}}"].concat();
+            result = result.replace(&replace, &current_value.to_insertion_string(false));
+        }
+    }
+
+    return result;
+}
+
+fn replace_previous_headers(text: &str, previous: &Option<SnapResponse>) -> String {
     let mut result: String = text.to_string();
 
     if let Some(previous) = previous {

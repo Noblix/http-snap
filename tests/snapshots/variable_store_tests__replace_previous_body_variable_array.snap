@@ -1,0 +1,80 @@
+---
+source: tests/variable_store_tests.rs
+assertion_line: 251
+expression: parsed
+---
+HttpFile {
+    options: SnapOptions {
+        include_headers: true,
+    },
+    verb: GET,
+    url: "https://localhost:5000/items",
+    headers: [
+        Header {
+            name: "Accept",
+            value: "application/json",
+        },
+    ],
+    body: Json {
+        element: Element {
+            value: Object(
+                Object {
+                    members: [
+                        Member {
+                            key: "array",
+                            value: Element {
+                                value: Array(
+                                    Array {
+                                        elements: [
+                                            Element {
+                                                value: Object(
+                                                    Object {
+                                                        members: [
+                                                            Member {
+                                                                key: "inside",
+                                                                value: Element {
+                                                                    value: String(
+                                                                        "should be in quotes",
+                                                                    ),
+                                                                },
+                                                            },
+                                                        ],
+                                                    },
+                                                ),
+                                            },
+                                            Element {
+                                                value: String(
+                                                    "Hello",
+                                                ),
+                                            },
+                                            Element {
+                                                value: Number(
+                                                    Int(
+                                                        42,
+                                                    ),
+                                                ),
+                                            },
+                                        ],
+                                    },
+                                ),
+                            },
+                        },
+                    ],
+                },
+            ),
+        },
+    },
+    snapshot: Snapshot {
+        status: Exact(
+            Null,
+        ),
+        headers: [],
+        body: JsonComparer {
+            element: ElementComparer {
+                value: Exact(
+                    Null,
+                ),
+            },
+        },
+    },
+}

@@ -1,0 +1,47 @@
+---
+source: tests/variable_store_tests.rs
+assertion_line: 177
+expression: parsed
+---
+HttpFile {
+    options: SnapOptions {
+        include_headers: true,
+    },
+    verb: GET,
+    url: "https://localhost:5000/items",
+    headers: [
+        Header {
+            name: "Accept",
+            value: "application/json",
+        },
+    ],
+    body: Json {
+        element: Element {
+            value: Object(
+                Object {
+                    members: [
+                        Member {
+                            key: "filters",
+                            value: Element {
+                                value: Null,
+                            },
+                        },
+                    ],
+                },
+            ),
+        },
+    },
+    snapshot: Snapshot {
+        status: Exact(
+            Null,
+        ),
+        headers: [],
+        body: JsonComparer {
+            element: ElementComparer {
+                value: Exact(
+                    Null,
+                ),
+            },
+        },
+    },
+}

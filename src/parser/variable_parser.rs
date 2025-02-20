@@ -8,7 +8,7 @@ pub(crate) fn variables_skipper() -> impl Parser<char, String, Error = Simple<ch
         .then(just(' ').repeated())
         .then(just('='))
         .then(just(' ').repeated())
-        .then(filter(|x: &char| !x.is_whitespace()).repeated().at_least(1))
+        .then(filter(|x: &char| x != &'\n').repeated().at_least(1))
         .padded()
         .repeated()
         .ignored()

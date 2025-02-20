@@ -28,6 +28,22 @@ fn get_with_options_without_snapshot() {
 }
 
 #[test]
+fn get_with_options_skipping_variables_without_snapshot() {
+    let input = indoc! {r#"
+        include-headers: false
+
+        @skip_me = Not important
+
+        GET https://localhost:5000/today
+        Accept: application/json
+    "#};
+
+    let result = parse_file(input).unwrap();
+
+    insta::assert_debug_snapshot!(result);
+}
+
+#[test]
 fn post_without_body_and_without_snapshot() {
     let input = indoc! {r#"
         POST https://localhost:5000/items

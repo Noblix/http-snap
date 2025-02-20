@@ -1,0 +1,36 @@
+---
+source: tests/parser_tests.rs
+assertion_line: 13
+expression: result
+---
+HttpFile {
+    options: SnapOptions {
+        include_headers: true,
+    },
+    verb: GET,
+    url: "https://localhost:5000/today",
+    headers: [
+        Header {
+            name: "Accept",
+            value: "application/json",
+        },
+    ],
+    body: Json {
+        element: Element {
+            value: Null,
+        },
+    },
+    snapshot: Snapshot {
+        status: Exact(
+            Null,
+        ),
+        headers: [],
+        body: JsonComparer {
+            element: ElementComparer {
+                value: Exact(
+                    Null,
+                ),
+            },
+        },
+    },
+}

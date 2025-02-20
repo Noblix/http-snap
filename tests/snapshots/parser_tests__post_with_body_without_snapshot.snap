@@ -1,0 +1,91 @@
+---
+source: tests/parser_tests.rs
+assertion_line: 48
+expression: result
+---
+HttpFile {
+    options: SnapOptions {
+        include_headers: true,
+    },
+    verb: POST,
+    url: "https://localhost:5000/items",
+    headers: [
+        Header {
+            name: "Accept",
+            value: "application/json",
+        },
+    ],
+    body: Json {
+        element: Element {
+            value: Object(
+                Object {
+                    members: [
+                        Member {
+                            key: "id",
+                            value: Element {
+                                value: Number(
+                                    Int(
+                                        5,
+                                    ),
+                                ),
+                            },
+                        },
+                        Member {
+                            key: "fields",
+                            value: Element {
+                                value: Object(
+                                    Object {
+                                        members: [
+                                            Member {
+                                                key: "text",
+                                                value: Element {
+                                                    value: String(
+                                                        "Hello!",
+                                                    ),
+                                                },
+                                            },
+                                            Member {
+                                                key: "authors",
+                                                value: Element {
+                                                    value: Array(
+                                                        Array {
+                                                            elements: [
+                                                                Element {
+                                                                    value: String(
+                                                                        "James Hughes",
+                                                                    ),
+                                                                },
+                                                                Element {
+                                                                    value: String(
+                                                                        "Eric McBrunch",
+                                                                    ),
+                                                                },
+                                                            ],
+                                                        },
+                                                    ),
+                                                },
+                                            },
+                                        ],
+                                    },
+                                ),
+                            },
+                        },
+                    ],
+                },
+            ),
+        },
+    },
+    snapshot: Snapshot {
+        status: Exact(
+            Null,
+        ),
+        headers: [],
+        body: JsonComparer {
+            element: ElementComparer {
+                value: Exact(
+                    Null,
+                ),
+            },
+        },
+    },
+}

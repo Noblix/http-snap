@@ -172,29 +172,36 @@ fn fraction_parser() -> impl Parser<char, Number, Error = Simple<char>> {
 }
 
 fn exponent_parser() -> impl Parser<char, Number, Error = Simple<char>> {
+    let sign = (one_of("+-").or_not()).map(|c: Option<char>| {
+        if c.is_none() {
+            "".to_string()
+        } else {
+            c.unwrap().to_string()
+        }
+    });
     let digits = one_of("0123456789")
         .repeated()
         .at_least(1)
         .map(|chars: Vec<char>| chars.into_iter().collect::<String>());
 
-    return (just("-").or(empty().to("")))
+    return (sign.clone())
         .then(digits.clone())
         .then(just("."))
         .then(digits.clone())
         .then(one_of("eE"))
-        .then(one_of("+-"))
+        .then(sign.clone())
         .then(digits.clone())
         .map(
             |((((((base_sign, base), dot), decimals), e_lit), exponent_sign), exponent)| {
                 Number::Exponent(
                     [
                         base_sign,
-                        &base,
-                        dot,
-                        &decimals,
-                        &e_lit.to_string(),
-                        &exponent_sign.to_string(),
-                        &exponent,
+                        base,
+                        dot.to_string(),
+                        decimals,
+                        e_lit.to_string(),
+                        exponent_sign.to_string(),
+                        exponent,
                     ]
                     .concat(),
                 )

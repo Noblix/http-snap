@@ -6,6 +6,7 @@ pub struct HttpClient {
     client: Client,
 }
 
+#[derive(Debug)]
 pub struct HttpResponse {
     pub status: u16,
     pub headers: HeaderMap,

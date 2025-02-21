@@ -30,6 +30,7 @@ pub async fn run(
 
         if are_equal {
             previous = Some(parsed_response);
+            println!("Snapshot {index} matches!")
         } else {
             merger::merge_snapshots_into_files(path_to_file, &request_texts, index, parsed_response)?;
             break;

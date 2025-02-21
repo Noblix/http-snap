@@ -24,7 +24,7 @@ fn value_parser(
 ) -> impl Parser<char, Value, Error = Simple<char>> {
     let number = number_parser().map(|value| Value::Number(value));
     let boolean = (just("true").map(|_| Value::Boolean(true)))
-        .or(just("false").map(|_| Value::Boolean(true)));
+        .or(just("false").map(|_| Value::Boolean(false)));
     let null = just("null").map(|_| Value::Null());
 
     return object_parser(element_parser.clone())

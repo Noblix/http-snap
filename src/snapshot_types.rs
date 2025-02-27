@@ -1,4 +1,6 @@
-﻿#[derive(Debug)]
+﻿use crate::types::CompositeString;
+
+#[derive(Debug)]
 pub struct Snapshot {
     pub status: Comparison,
     pub headers: Vec<HeaderComparer>,
@@ -31,7 +33,7 @@ pub struct ElementComparer {
 pub enum ValueComparer {
     Object(ObjectComparer),
     Array(ArrayComparer),
-    String(String),
+    String(CompositeString),
     Number(Number),
     Boolean(bool),
     Null(),

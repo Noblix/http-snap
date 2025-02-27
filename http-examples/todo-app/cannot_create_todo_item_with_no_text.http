@@ -1,6 +1,6 @@
 include-headers: false
 
-@path = sign-in
+@path = "sign-in"
 POST https://localhost:50001/{{path}}
 
 SNAPSHOT:

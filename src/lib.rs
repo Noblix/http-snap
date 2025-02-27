@@ -9,7 +9,10 @@ pub mod snapshot_types;
 pub mod types;
 pub mod variable_store;
 
-pub async fn run(path_to_file: &str, should_update: bool) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn run(
+    path_to_file: &str,
+    should_update: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     let raw_text = read_to_string(path_to_file).unwrap();
     let text = raw_text.trim_start_matches("\u{feff}");
     let request_texts: Vec<&str> = text.split("###").map(|s| s.trim()).collect();
@@ -19,8 +22,8 @@ pub async fn run(path_to_file: &str, should_update: bool) -> Result<(), Box<dyn 
     let mut previous: Option<SnapResponse> = None;
     for (index, request_text) in request_texts.clone().iter().enumerate() {
         let http_file = parser::parse_file(request_text).unwrap();
-        let http_file_without_variables = variable_store.replace_variables(http_file);
-        
+        let http_file_without_variables = variable_store.replace_variables(http_file, &previous);
+
         println!("{:?}", http_file_without_variables);
 
         let response = client.send_request(&http_file_without_variables).await?;

@@ -1,10 +1,12 @@
 ﻿use crate::snapshot_types::Number::Int;
 use crate::snapshot_types::*;
+use crate::types::{CompositeString, CompositeStringPart};
 use chumsky::error::Simple;
 use chumsky::prelude::*;
 use chumsky::text::{int, whitespace};
 use chumsky::Parser;
 use std::ops::Add;
+use crate::parser::variable_parser::variable_name_parser;
 
 // Based on https://www.json.org/json-en.html
 pub(crate) fn snapshot_parser() -> impl Parser<char, Snapshot, Error = Simple<char>> {
@@ -53,7 +55,12 @@ fn headers_parser() -> impl Parser<char, Vec<HeaderComparer>, Error = Simple<cha
         .repeated()
         .at_least(1)
         .map(|chars: Vec<char>| {
-            Comparison::Exact(ValueComparer::String(chars.into_iter().collect::<String>()))
+            Comparison::Exact(ValueComparer::String(CompositeString {
+                parts: [CompositeStringPart::Literal(
+                    chars.into_iter().collect::<String>(),
+                )]
+                .to_vec(),
+            }))
         });
 
     let header_key = text::ident()
@@ -135,7 +142,11 @@ fn member_parser(
 }
 
 fn member_key_parser() -> impl Parser<char, String, Error = Simple<char>> {
-    return characters_parser(1).delimited_by(just('"'), just('"'));
+    return character_parser()
+        .repeated()
+        .at_least(1)
+        .delimited_by(just('"'), just('"'))
+        .map(|chars: Vec<char>| chars.into_iter().collect::<String>());
 }
 
 fn array_parser(
@@ -170,16 +181,16 @@ fn element_parser() -> impl Parser<char, ElementComparer, Error = Simple<char>> 
 }
 
 fn string_value_parser() -> impl Parser<char, Comparison, Error = Simple<char>> {
-    return characters_parser(0)
+    return characters_parser()
         .delimited_by(just('"'), just('"'))
-        .map(|c| Comparison::Exact(ValueComparer::String(c.to_string())));
+        .map(|val| Comparison::Exact(ValueComparer::String(val)));
 }
 
-fn characters_parser(minimum_repeat: usize) -> impl Parser<char, String, Error = Simple<char>> {
-    return character_parser()
+fn characters_parser() -> impl Parser<char, CompositeString, Error = Simple<char>> {
+    return variable_name_parser()
+        .or(character_parser().map(|c| CompositeStringPart::Literal(c.to_string())))
         .repeated()
-        .at_least(minimum_repeat)
-        .map(|chars: Vec<char>| chars.into_iter().collect::<String>());
+        .map(|parts| CompositeString { parts });
 }
 
 fn character_parser() -> impl Parser<char, char, Error = Simple<char>> {

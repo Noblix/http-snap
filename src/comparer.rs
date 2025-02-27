@@ -56,7 +56,7 @@ fn match_headers(snapshot_headers: &Vec<HeaderComparer>, response_header: &Heade
             Comparison::Exact(ValueComparer::String(value)) => {
                 let response_value_option = response_header.get(&snapshot_header.name);
                 if let Some(response_value) = response_value_option {
-                    response_value.to_str().unwrap() == value
+                    response_value.to_str().unwrap() == value.to_string()
                 } else {
                     false
                 }
@@ -110,7 +110,7 @@ fn match_body_value(expected: &ValueComparer, actual: &Value) -> bool {
             match_body_array(expected_array, actual_array)
         }
         (ValueComparer::String(expected_string), Value::String(actual_string)) => {
-            expected_string == actual_string
+            expected_string.to_string() == actual_string.to_string()
         }
         (ValueComparer::Number(expected_number), Value::Number(actual_number)) => {
             match_body_number(expected_number, actual_number)

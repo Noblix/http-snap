@@ -3,7 +3,7 @@ use reqwest::header::HeaderMap;
 use serde::ser::{SerializeMap, SerializeSeq, Serializer};
 use serde::Serialize;
 use std::collections::HashMap;
-use std::fmt::Display;
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug)]
 pub struct HttpFile {
@@ -38,24 +38,37 @@ pub enum HttpVerb {
     PUT,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CompositeString {
     pub parts: Vec<CompositeStringPart>,
 }
 
-impl CompositeString {
-    pub fn to_string(&self) -> String {
-        return self.parts.iter().map(|part| match part {
-            CompositeStringPart::Literal(val) => val.clone(),
-            CompositeStringPart::VariableName(name) => name.clone(),
-        }).collect();
+impl Display for CompositeString {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let str = self
+            .parts
+            .iter()
+            .map(|part| part.to_string())
+            .collect::<Vec<String>>()
+            .join("");
+        write!(f, "{}", str)
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum CompositeStringPart {
     Literal(String),
     VariableName(String),
+}
+
+impl Display for CompositeStringPart {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            CompositeStringPart::Literal(val) => val,
+            CompositeStringPart::VariableName(name) => &["{{", name, "}}"].concat(),
+        };
+        write!(f, "{}", str)
+    }
 }
 
 #[derive(Debug)]
@@ -78,7 +91,7 @@ impl Serialize for Json {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Element {
     pub value: Value,
 }
@@ -92,12 +105,12 @@ impl Serialize for Element {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Value {
     VariableReference(String),
     Object(Object),
     Array(Array),
-    String(String),
+    String(CompositeString),
     Number(Number),
     Boolean(bool),
     Null(),
@@ -112,7 +125,7 @@ impl Serialize for Value {
             Value::VariableReference(name) => panic!("Variable name {name} is unknown"),
             Value::Object(val) => val.serialize(serializer),
             Value::Array(val) => val.serialize(serializer),
-            Value::String(val) => serializer.serialize_str(val),
+            Value::String(val) => serializer.serialize_str(&val.to_string()),
             Value::Number(val) => val.serialize(serializer),
             Value::Boolean(val) => serializer.serialize_bool(val.clone()),
             Value::Null() => serializer.serialize_none(),
@@ -120,7 +133,7 @@ impl Serialize for Value {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Object {
     pub members: Vec<Member>,
 }
@@ -138,13 +151,13 @@ impl Serialize for Object {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Member {
     pub key: String,
     pub value: Element,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Array {
     pub elements: Vec<Element>,
 }
@@ -162,7 +175,7 @@ impl Serialize for Array {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Number {
     Int(i64),
     Fraction(f64),

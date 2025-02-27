@@ -1,4 +1,4 @@
-﻿use crate::parser::variable_parser::{variable_name_string_parser};
+﻿use crate::parser::variable_parser::{variable_name_parser, variable_name_string_parser};
 use crate::types::*;
 use chumsky::error::Simple;
 use chumsky::prelude::*;
@@ -73,7 +73,11 @@ fn member_parser(
 }
 
 fn member_key_parser() -> impl Parser<char, String, Error = Simple<char>> {
-    return characters_parser(1).delimited_by(just('"'), just('"'));
+    return character_parser()
+        .repeated()
+        .at_least(1)
+        .delimited_by(just('"'), just('"'))
+        .map(|chars: Vec<char>| chars.into_iter().collect::<String>());
 }
 
 fn array_parser(
@@ -108,16 +112,16 @@ pub(crate) fn element_parser() -> impl Parser<char, Element, Error = Simple<char
 }
 
 fn string_value_parser() -> impl Parser<char, Value, Error = Simple<char>> {
-    return characters_parser(0)
+    return characters_parser()
         .delimited_by(just('"'), just('"'))
-        .map(|c| Value::String(c.to_string()));
+        .map(|val| Value::String(val));
 }
 
-fn characters_parser(minimum_repeat: usize) -> impl Parser<char, String, Error = Simple<char>> {
-    return character_parser()
+pub(crate) fn characters_parser() -> impl Parser<char, CompositeString, Error = Simple<char>> {
+    return variable_name_parser()
+        .or(character_parser().map(|c| CompositeStringPart::Literal(c.to_string())))
         .repeated()
-        .at_least(minimum_repeat)
-        .map(|chars: Vec<char>| chars.into_iter().collect::<String>());
+        .map(|parts| CompositeString { parts });
 }
 
 fn character_parser() -> impl Parser<char, char, Error = Simple<char>> {

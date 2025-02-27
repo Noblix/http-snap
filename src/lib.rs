@@ -9,7 +9,7 @@ pub mod snapshot_types;
 pub mod types;
 pub mod variable_store;
 
-pub async fn run(path_to_file: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn run(path_to_file: &str, should_update: bool) -> Result<(), Box<dyn std::error::Error>> {
     let raw_text = read_to_string(path_to_file).unwrap();
     let text = raw_text.trim_start_matches("\u{feff}");
     let request_texts: Vec<&str> = text.split("###").map(|s| s.trim()).collect();
@@ -33,13 +33,15 @@ pub async fn run(path_to_file: &str) -> Result<(), Box<dyn std::error::Error>> {
         if are_equal {
             previous = Some(parsed_response);
             println!("Snapshot {index} matches!")
-        } else {
+        } else if should_update {
             merger::merge_snapshots_into_files(
                 path_to_file,
                 &request_texts,
                 index,
                 parsed_response,
             )?;
+            break;
+        } else {
             break;
         }
     }

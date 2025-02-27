@@ -1,4 +1,5 @@
-﻿use crate::types::*;
+﻿use crate::parser::variable_parser::{variable_name_string_parser};
+use crate::types::*;
 use chumsky::error::Simple;
 use chumsky::prelude::*;
 use chumsky::text::{int, whitespace};
@@ -19,18 +20,19 @@ fn json_parser() -> impl Parser<char, Json, Error = Simple<char>> {
     return element_parser().map(|element| Json { element });
 }
 
-fn value_parser(
+pub(crate) fn value_parser(
     element_parser: impl Parser<char, Element, Error = Simple<char>> + Clone,
 ) -> impl Parser<char, Value, Error = Simple<char>> {
-    let number = number_parser().map(|value| Value::Number(value));
+    let variable = variable_name_string_parser().map(|name| Value::VariableReference(name));
     let boolean = (just("true").map(|_| Value::Boolean(true)))
         .or(just("false").map(|_| Value::Boolean(false)));
     let null = just("null").map(|_| Value::Null());
 
-    return object_parser(element_parser.clone())
+    return variable
+        .or(object_parser(element_parser.clone()))
         .or(array_parser(element_parser.clone()))
         .or(string_value_parser())
-        .or(number)
+        .or(number_value_parser())
         .or(boolean)
         .or(null);
 }
@@ -96,7 +98,7 @@ fn elements_parser(
     return element_parser.separated_by(just(",")).collect();
 }
 
-fn element_parser() -> impl Parser<char, Element, Error = Simple<char>> {
+pub(crate) fn element_parser() -> impl Parser<char, Element, Error = Simple<char>> + Clone {
     return recursive(|element_parser| {
         whitespace()
             .ignore_then(value_parser(element_parser))
@@ -150,6 +152,10 @@ fn hex_parser() -> impl Parser<char, char, Error = Simple<char>> {
             let as_string: String = digits.into_iter().collect();
             char::from_u32(u32::from_str_radix(&as_string, 16).unwrap()).unwrap()
         });
+}
+
+fn number_value_parser() -> impl Parser<char, Value, Error = Simple<char>> {
+    return number_parser().map(|value| Value::Number(value));
 }
 
 fn number_parser() -> impl Parser<char, Number, Error = Simple<char>> {

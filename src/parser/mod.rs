@@ -12,14 +12,15 @@ use chumsky::Parser;
 
 fn parser() -> impl Parser<char, HttpFile, Error = Simple<char>> {
     let base = option_parser::options_parser()
-        .then_ignore(variable_parser::variables_skipper())
+        .then(variable_parser::variables_parser())
         .then(url_parser::verb_parser())
         .then(url_parser::url_parser())
         .then(header_parser::headers_parser())
         .then(body_parser::body_parser())
         .then(snapshot_parser::snapshot_parser())
-        .map(|(((((options, verb), url), headers), body), snapshot)| HttpFile {
+        .map(|((((((options, variables), verb), url), headers), body), snapshot)| HttpFile {
             options,
+            variables,
             verb,
             url,
             headers,

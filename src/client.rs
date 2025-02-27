@@ -30,11 +30,11 @@ impl HttpClient {
         let body = get_json(&http_file.body);
 
         let verb_setup = match http_file.verb {
-            HttpVerb::GET => self.client.get(&http_file.url),
-            HttpVerb::DELETE => self.client.delete(&http_file.url),
-            HttpVerb::PATCH => self.client.patch(&http_file.url),
-            HttpVerb::POST => self.client.post(&http_file.url),
-            HttpVerb::PUT => self.client.put(&http_file.url),
+            HttpVerb::GET => self.client.get(&http_file.url.to_string()),
+            HttpVerb::DELETE => self.client.delete(&http_file.url.to_string()),
+            HttpVerb::PATCH => self.client.patch(&http_file.url.to_string()),
+            HttpVerb::POST => self.client.post(&http_file.url.to_string()),
+            HttpVerb::PUT => self.client.put(&http_file.url.to_string()),
         };
         let response = verb_setup.headers(headers).body(body).send().await?;
 

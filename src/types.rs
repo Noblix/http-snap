@@ -2,12 +2,15 @@
 use reqwest::header::HeaderMap;
 use serde::ser::{SerializeMap, SerializeSeq, Serializer};
 use serde::Serialize;
+use std::collections::HashMap;
+use std::fmt::Display;
 
 #[derive(Debug)]
 pub struct HttpFile {
     pub options: SnapOptions,
+    pub variables: HashMap<String, Value>,
     pub verb: HttpVerb,
-    pub url: String,
+    pub url: CompositeString,
     pub headers: Vec<Header>,
     pub body: Json,
     pub snapshot: Snapshot,
@@ -18,7 +21,7 @@ pub struct SnapResponse {
     pub options: SnapOptions,
     pub status: u16,
     pub headers: HeaderMap,
-    pub body: Json
+    pub body: Json,
 }
 
 #[derive(Debug, Clone)]
@@ -33,6 +36,26 @@ pub enum HttpVerb {
     PATCH,
     POST,
     PUT,
+}
+
+#[derive(Debug)]
+pub struct CompositeString {
+    pub parts: Vec<CompositeStringPart>,
+}
+
+impl CompositeString {
+    pub fn to_string(&self) -> String {
+        return self.parts.iter().map(|part| match part {
+            CompositeStringPart::Literal(val) => val.clone(),
+            CompositeStringPart::VariableName(name) => name.clone(),
+        }).collect();
+    }
+}
+
+#[derive(Debug)]
+pub enum CompositeStringPart {
+    Literal(String),
+    VariableName(String),
 }
 
 #[derive(Debug)]
@@ -69,14 +92,9 @@ impl Serialize for Element {
     }
 }
 
-impl Element {
-    pub fn to_insertion_string(&self, nested: bool) -> String {
-        return self.value.to_insertion_string(nested);
-    }
-}
-
 #[derive(Debug)]
 pub enum Value {
+    VariableReference(String),
     Object(Object),
     Array(Array),
     String(String),
@@ -91,31 +109,13 @@ impl Serialize for Value {
         S: Serializer,
     {
         match self {
+            Value::VariableReference(name) => panic!("Variable name {name} is unknown"),
             Value::Object(val) => val.serialize(serializer),
             Value::Array(val) => val.serialize(serializer),
             Value::String(val) => serializer.serialize_str(val),
             Value::Number(val) => val.serialize(serializer),
             Value::Boolean(val) => serializer.serialize_bool(val.clone()),
             Value::Null() => serializer.serialize_none(),
-        }
-    }
-}
-
-impl Value {
-    pub fn to_insertion_string(&self, nested: bool) -> String {
-        match self {
-            Value::Object(val) => val.to_insertion_string(),
-            Value::Array(val) => val.to_insertion_string(),
-            Value::String(val) => {
-                if nested {
-                    ["\"", val, "\""].concat()
-                } else {
-                    val.clone()
-                }
-            }
-            Value::Number(val) => val.to_insertion_string(),
-            Value::Boolean(val) => val.to_string(),
-            Value::Null() => "null".to_string(),
         }
     }
 }
@@ -138,35 +138,10 @@ impl Serialize for Object {
     }
 }
 
-impl Object {
-    pub fn to_insertion_string(&self) -> String {
-        let mut result = "{".to_string();
-        let mut member_strings = Vec::new();
-        for member in &self.members {
-            member_strings.push(member.to_insertion_string(true))
-        }
-        result += &member_strings.join("\n,");
-        result += "}";
-        return result;
-    }
-}
-
 #[derive(Debug)]
 pub struct Member {
     pub key: String,
     pub value: Element,
-}
-
-impl Member {
-    pub fn to_insertion_string(&self, nested: bool) -> String {
-        return [
-            "\"",
-            &self.key,
-            "\": ",
-            &self.value.to_insertion_string(nested),
-        ]
-        .concat();
-    }
 }
 
 #[derive(Debug)]
@@ -184,19 +159,6 @@ impl Serialize for Array {
             seq.serialize_element(element)?;
         }
         return seq.end();
-    }
-}
-
-impl Array {
-    pub fn to_insertion_string(&self) -> String {
-        let mut result = "[".to_string();
-        let mut element_strings = Vec::new();
-        for element in &self.elements {
-            element_strings.push(element.to_insertion_string(true))
-        }
-        result += &element_strings.join("\n,");
-        result += "]";
-        return result;
     }
 }
 
@@ -220,12 +182,13 @@ impl Serialize for Number {
     }
 }
 
-impl Number {
-    pub fn to_insertion_string(&self) -> String {
-        match self {
+impl Display for Number {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
             Number::Int(val) => val.to_string(),
             Number::Fraction(val) => val.to_string(),
             Number::Exponent(val) => val.clone(),
-        }
+        };
+        write!(f, "{}", str)
     }
 }

@@ -1,5 +1,4 @@
-﻿use crate::snapshot_types::Snapshot;
-use reqwest::header::HeaderMap;
+﻿use reqwest::header::HeaderMap;
 use serde::ser::{SerializeMap, SerializeSeq, Serializer};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -14,6 +13,19 @@ pub struct HttpFile {
     pub headers: Vec<Header>,
     pub body: Json,
     pub snapshot: Snapshot,
+}
+
+#[derive(Debug)]
+pub struct Snapshot {
+    pub status: Number,
+    pub headers: Vec<Header>,
+    pub body: Json
+}
+
+#[derive(Debug, Clone)]
+pub enum Comparison {
+    Exact,
+    Ignore
 }
 
 #[derive(Debug)]
@@ -75,6 +87,8 @@ impl Display for CompositeStringPart {
 pub struct Header {
     pub name: String,
     pub value: String,
+    pub variable_store: Option<String>,
+    pub comparison: Option<Comparison>
 }
 
 #[derive(Debug)]
@@ -94,6 +108,8 @@ impl Serialize for Json {
 #[derive(Debug, Clone)]
 pub struct Element {
     pub value: Value,
+    pub variable_store: Option<String>,
+    pub comparison: Option<Comparison>
 }
 
 impl Serialize for Element {

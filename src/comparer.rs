@@ -1,9 +1,4 @@
-﻿use crate::snapshot_types::{
-    ArrayComparer, Comparison, ElementComparer, HeaderComparer, JsonComparer, Number,
-    ObjectComparer, Snapshot, ValueComparer,
-};
-use crate::types;
-use crate::types::{Array, Element, Json, Object, SnapResponse, Value};
+﻿use crate::types::{Array, Comparison, Element, Header, Json, Number, Object, SnapResponse, Snapshot, Value};
 use reqwest::header::HeaderMap;
 use std::collections::HashMap;
 
@@ -35,28 +30,27 @@ pub fn compare_to_snapshot(snapshot: &Snapshot, response: &SnapResponse) -> bool
     return true;
 }
 
-fn match_status(snapshot_status: &Comparison, response_status: &u16) -> bool {
+fn match_status(snapshot_status: &Number, response_status: &u16) -> bool {
     return match snapshot_status {
-        Comparison::Ignore => true,
-        Comparison::Exact(ValueComparer::Number(Number::Int(value))) => {
+        Number::Int(value) => {
             value == &(response_status.clone() as i64)
         }
         _ => false,
     };
 }
 
-fn match_headers(snapshot_headers: &Vec<HeaderComparer>, response_header: &HeaderMap) -> bool {
+fn match_headers(snapshot_headers: &Vec<Header>, response_header: &HeaderMap) -> bool {
     for snapshot_header in snapshot_headers {
-        if matches!(snapshot_header.value, Comparison::Ignore) {
+        if matches!(snapshot_header.comparison, Some(Comparison::Ignore)) {
             println!("Ignored header called: {:?}", snapshot_header.name);
             continue;
         }
 
-        let matched_snapshot = match &snapshot_header.value {
-            Comparison::Exact(ValueComparer::String(value)) => {
+        let matched_snapshot = match &snapshot_header.comparison {
+            Some(Comparison::Exact) => {
                 let response_value_option = response_header.get(&snapshot_header.name);
                 if let Some(response_value) = response_value_option {
-                    response_value.to_str().unwrap() == value.to_string()
+                    response_value.to_str().unwrap() == snapshot_header.value
                 } else {
                     false
                 }
@@ -86,44 +80,41 @@ fn match_headers(snapshot_headers: &Vec<HeaderComparer>, response_header: &Heade
     return true;
 }
 
-fn match_body(snapshot_body: &JsonComparer, response_body: &Json) -> bool {
+fn match_body(snapshot_body: &Json, response_body: &Json) -> bool {
     return match_body_element(&snapshot_body.element, &response_body.element);
 }
 
-fn match_body_element(expected: &ElementComparer, actual: &Element) -> bool {
-    return match_body_comparison(&expected.value, &actual.value);
-}
-
-fn match_body_comparison(expected: &Comparison, actual: &Value) -> bool {
-    return match expected {
-        Comparison::Ignore => true,
-        Comparison::Exact(expected_value) => match_body_value(expected_value, actual),
+fn match_body_element(expected: &Element, actual: &Element) -> bool {
+    return match expected.comparison {
+        Some(Comparison::Ignore) => true,
+        Some(Comparison::Exact) => match_body_value(&expected.value, &actual.value),
+        _ => panic!("No comparison for snapshot element")
     };
 }
 
-fn match_body_value(expected: &ValueComparer, actual: &Value) -> bool {
+fn match_body_value(expected: &Value, actual: &Value) -> bool {
     return match (expected, actual) {
-        (ValueComparer::Object(expected_object), Value::Object(actual_object)) => {
+        (Value::Object(expected_object), Value::Object(actual_object)) => {
             match_body_object(expected_object, actual_object)
         }
-        (ValueComparer::Array(expected_array), Value::Array(actual_array)) => {
+        (Value::Array(expected_array), Value::Array(actual_array)) => {
             match_body_array(expected_array, actual_array)
         }
-        (ValueComparer::String(expected_string), Value::String(actual_string)) => {
+        (Value::String(expected_string), Value::String(actual_string)) => {
             expected_string.to_string() == actual_string.to_string()
         }
-        (ValueComparer::Number(expected_number), Value::Number(actual_number)) => {
+        (Value::Number(expected_number), Value::Number(actual_number)) => {
             match_body_number(expected_number, actual_number)
         }
-        (ValueComparer::Boolean(expected_bool), Value::Boolean(actual_bool)) => {
+        (Value::Boolean(expected_bool), Value::Boolean(actual_bool)) => {
             expected_bool == actual_bool
         }
-        (ValueComparer::Null(), Value::Null()) => true,
+        (Value::Null(), Value::Null()) => true,
         _ => false,
     };
 }
 
-fn match_body_object(expected: &ObjectComparer, actual: &Object) -> bool {
+fn match_body_object(expected: &Object, actual: &Object) -> bool {
     if expected.members.len() != actual.members.len() {
         return false;
     }
@@ -151,7 +142,7 @@ fn match_body_object(expected: &ObjectComparer, actual: &Object) -> bool {
     return true;
 }
 
-fn match_body_array(expected: &ArrayComparer, actual: &Array) -> bool {
+fn match_body_array(expected: &Array, actual: &Array) -> bool {
     if expected.elements.len() != actual.elements.len() {
         return false;
     }
@@ -167,13 +158,13 @@ fn match_body_array(expected: &ArrayComparer, actual: &Array) -> bool {
     return true;
 }
 
-fn match_body_number(expected: &Number, actual: &types::Number) -> bool {
+fn match_body_number(expected: &Number, actual: &Number) -> bool {
     return match (expected, actual) {
-        (Number::Int(expected_int), types::Number::Int(actual_int)) => expected_int == actual_int,
-        (Number::Fraction(expected_faction), types::Number::Fraction(actual_fraction)) => {
+        (Number::Int(expected_int), Number::Int(actual_int)) => expected_int == actual_int,
+        (Number::Fraction(expected_faction), Number::Fraction(actual_fraction)) => {
             expected_faction == actual_fraction
         }
-        (Number::Exponent(expected_exponent), types::Number::Exponent(actual_exponent)) => {
+        (Number::Exponent(expected_exponent), Number::Exponent(actual_exponent)) => {
             expected_exponent == actual_exponent
         }
         _ => false,

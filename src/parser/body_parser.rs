@@ -1,23 +1,33 @@
-﻿use crate::parser::variable_parser::{variable_name_parser, variable_name_string_parser};
+﻿use crate::parser::snapshot_parser::ignore_comparison_parser;
+use crate::parser::variable_parser::{
+    variable_name_parser, variable_name_string_parser, variable_store_parser,
+};
 use crate::types::*;
 use chumsky::error::Simple;
 use chumsky::prelude::*;
 use chumsky::text::{int, whitespace};
 use chumsky::Parser;
+use std::rc::Rc;
 
 // Based on https://www.json.org/json-en.html
-pub(crate) fn body_parser() -> impl Parser<char, Json, Error = Simple<char>> {
-    let no_body = empty().map(|_| Json {
+pub(crate) fn body_parser(comparison: bool) -> impl Parser<char, Json, Error = Simple<char>> {
+    let no_body = empty().map(move |_| Json {
         element: Element {
             value: Value::Null(),
+            comparison: if comparison.clone() {
+                Some(Comparison::Exact)
+            } else {
+                None
+            },
+            variable_store: None,
         },
     });
 
-    return json_parser().or(no_body);
+    return json_parser(comparison).or(no_body);
 }
 
-fn json_parser() -> impl Parser<char, Json, Error = Simple<char>> {
-    return element_parser().map(|element| Json { element });
+fn json_parser(comparison: bool) -> impl Parser<char, Json, Error = Simple<char>> {
+    return element_parser(comparison).map(|element| Json { element });
 }
 
 pub(crate) fn value_parser(
@@ -102,13 +112,52 @@ fn elements_parser(
     return element_parser.separated_by(just(",")).collect();
 }
 
-pub(crate) fn element_parser() -> impl Parser<char, Element, Error = Simple<char>> + Clone {
-    return recursive(|element_parser| {
+pub(crate) fn element_parser(
+    compare: bool,
+) -> impl Parser<char, Element, Error = Simple<char>> + Clone {
+    return if compare {
+        element_compare_parser()
+    } else {
+        element_no_compare_parser()
+    };
+}
+
+fn element_compare_parser() -> Rc<dyn Parser<char, Element, Error = Simple<char>>> {
+    return Rc::new(recursive(|element_compare_parser| {
         whitespace()
-            .ignore_then(value_parser(element_parser))
+            .ignore_then(
+                (ignore_comparison_parser()
+                    .then(variable_store_parser().or_not())
+                    .map(|(_, variable_store)| Element {
+                        value: Value::Null(),
+                        variable_store,
+                        comparison: Some(Comparison::Ignore),
+                    }))
+                .or(value_parser(element_compare_parser)
+                    .then(variable_store_parser().or_not())
+                    .map(|(value, variable_store)| Element {
+                        value,
+                        variable_store,
+                        comparison: Some(Comparison::Exact),
+                    })),
+            )
             .then_ignore(whitespace())
-            .map(|value| Element { value })
-    });
+    }));
+}
+
+fn element_no_compare_parser() -> Rc<dyn Parser<char, Element, Error = Simple<char>>> {
+    return Rc::new(recursive(|element_no_compare_parser| {
+        whitespace()
+            .ignore_then(value_parser(element_no_compare_parser))
+            .then_ignore(whitespace())
+            .then(variable_store_parser().or_not())
+            .then_ignore(whitespace())
+            .map(|(value, variable_store)| Element {
+                value,
+                variable_store,
+                comparison: None,
+            })
+    }));
 }
 
 fn string_value_parser() -> impl Parser<char, Value, Error = Simple<char>> {

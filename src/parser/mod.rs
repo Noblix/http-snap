@@ -12,11 +12,11 @@ use chumsky::Parser;
 
 fn parser() -> impl Parser<char, HttpFile, Error = Simple<char>> {
     let base = option_parser::options_parser()
-        .then(variable_parser::variables_parser())
+        .then(variable_parser::variables_parser(false))
         .then(url_parser::verb_parser())
         .then(url_parser::url_parser())
-        .then(header_parser::headers_parser())
-        .then(body_parser::body_parser())
+        .then(header_parser::headers_parser(false))
+        .then(body_parser::body_parser(false))
         .then(snapshot_parser::snapshot_parser())
         .map(|((((((options, variables), verb), url), headers), body), snapshot)| HttpFile {
             options,
@@ -40,7 +40,7 @@ pub async fn parse_response(
     options: SnapOptions,
     response: &HttpResponse,
 ) -> Result<SnapResponse, Box<dyn std::error::Error>> {
-    let body = body_parser::body_parser()
+    let body = body_parser::body_parser(false)
         .parse(response.body.clone())
         .unwrap();
     return Ok(SnapResponse {

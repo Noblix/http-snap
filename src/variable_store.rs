@@ -1,7 +1,8 @@
 ﻿use crate::types::{
-    Array, CompositeString, CompositeStringPart, Element, HttpFile, Member, Number, Object,
-    SnapResponse, Value,
+    Array, Comparison, CompositeString, CompositeStringPart, Element, Header, HttpFile, Json,
+    Member, Object, SnapResponse, Snapshot, Value,
 };
+use reqwest::header::HeaderMap;
 use std::collections::HashMap;
 
 pub struct VariableStore {
@@ -15,41 +16,125 @@ impl VariableStore {
         };
     }
 
-    pub fn replace_variables(
+    pub(crate) fn update_variables(&mut self, snapshot: &Snapshot, response: &SnapResponse) {
+        self.extract_variables_from_headers(&snapshot.headers, &response.headers);
+        self.extract_variables_from_body(&snapshot.body.element, &response.body.element);
+    }
+
+    fn extract_variables_from_headers(
         &mut self,
-        input: HttpFile,
-        previous: &Option<SnapResponse>,
-    ) -> HttpFile {
-        self.extend_variables(&input.variables, previous);
-        let url_replaced = self.replace_in_composite_string(&input.url, previous);
-        /*        let previous_headers_replaced = replace_previous_headers(text, &previous);
-                let previous_body_replaced = replace_previous_body(&previous_headers_replaced, &previous);
-                let new_variables = extract_variables(&previous_body_replaced);
-                self.variables.extend(new_variables.into_iter());
-                let text_without_variables = self.replace_local_variables(&previous_body_replaced);
-        */
+        snapshot_headers: &Vec<Header>,
+        response_headers: &HeaderMap,
+    ) {
+        for header in snapshot_headers {
+            if let Some(variable_name) = &header.variable_store {
+                self.variables.insert(
+                    variable_name.to_string(),
+                    Value::String(CompositeString {
+                        parts: [CompositeStringPart::Literal(
+                            response_headers
+                                .get(&header.name)
+                                .unwrap()
+                                .to_str()
+                                .unwrap()
+                                .to_string(),
+                        )]
+                        .to_vec(),
+                    }),
+                );
+            }
+        }
+    }
+
+    fn extract_variables_from_body(
+        &mut self,
+        snapshot_element: &Element,
+        response_element: &Element,
+    ) {
+        if let Some(name) = &snapshot_element.variable_store {
+            self.variables
+                .insert(name.clone(), response_element.value.clone());
+        }
+
+        match (&snapshot_element.value, &response_element.value) {
+            (Value::Object(snapshot_object), Value::Object(response_object)) => {
+                for (index, member) in snapshot_object.members.iter().enumerate() {
+                    self.extract_variables_from_body(
+                        &member.value,
+                        &response_object.members.get(index).unwrap().value,
+                    )
+                }
+            }
+            (Value::Array(snapshot_array), Value::Array(response_array)) => {
+                for (index, element) in snapshot_array.elements.iter().enumerate() {
+                    self.extract_variables_from_body(
+                        element,
+                        response_array.elements.get(index).unwrap(),
+                    )
+                }
+            }
+            _ => (),
+        }
+    }
+
+    pub(crate) fn replace_variables(&mut self, input: HttpFile) -> HttpFile {
+        self.extend_variables(&input.variables);
+        let url_replaced = self.replace_in_composite_string(&input.url);
+        let body_replaced = self.replace_in_body(&input.body);
+        let snapshot_replaced = self.replace_in_snapshot(input.snapshot);
         return HttpFile {
             options: input.options,
             variables: input.variables,
             verb: input.verb,
             url: url_replaced,
             headers: input.headers,
-            body: input.body,
-            snapshot: input.snapshot,
+            body: body_replaced,
+            snapshot: snapshot_replaced,
         };
     }
 
-    fn replace_in_composite_string(
-        &self,
-        url: &CompositeString,
-        previous: &Option<SnapResponse>,
-    ) -> CompositeString {
+    fn extend_variables(&mut self, new_variables: &HashMap<String, Value>) {
+        for (new_var_name, new_var_value) in new_variables {
+            let value = self.replace_in_value(new_var_value);
+            self.variables.insert(new_var_name.clone(), value);
+        }
+    }
+
+    fn replace_in_value(&self, value: &Value) -> Value {
+        return match value {
+            Value::VariableReference(name) => self.look_up_variable(&name),
+            Value::Boolean(_) | Value::Null() | Value::Number(_) => value.clone(),
+            Value::String(val) => Value::String(self.replace_in_composite_string(val)),
+            Value::Array(array) => self.replace_in_array(array),
+            Value::Object(object) => self.replace_in_object(object),
+        };
+    }
+
+    fn look_up_variable(&self, name: &str) -> Value {
+        if self.variables.contains_key(name) {
+            return self.variables.get(name).unwrap().clone();
+        }
+
+        panic!("Variable not found!");
+    }
+
+    fn replace_in_body(&self, body: &Json) -> Json {
+        return Json {
+            element: Element {
+                value: self.replace_in_value(&body.element.value),
+                variable_store: body.element.variable_store.clone(),
+                comparison: body.element.comparison.clone(),
+            }
+        };
+    }
+
+    fn replace_in_composite_string(&self, url: &CompositeString) -> CompositeString {
         let mut replaced_url = Vec::new();
         for part in &url.parts {
             match part {
                 CompositeStringPart::Literal(_) => replaced_url.push(part.clone()),
                 CompositeStringPart::VariableName(name) => {
-                    let value = self.look_up_variable(name, previous);
+                    let value = self.look_up_variable(name);
                     let value_as_string = match value {
                         Value::String(val) => val.to_string(),
                         Value::Number(val) => val.to_string(),
@@ -66,76 +151,57 @@ impl VariableStore {
         };
     }
 
-    fn extend_variables(
-        &mut self,
-        new_variables: &HashMap<String, Value>,
-        previous: &Option<SnapResponse>,
-    ) {
-        for (new_var_name, new_var_value) in new_variables {
-            let value = self.replace_in_value(new_var_value, previous);
-            self.variables.insert(new_var_name.clone(), value);
-        }
-    }
-
-    fn replace_in_value(&self, value: &Value, previous: &Option<SnapResponse>) -> Value {
-        return match value {
-            Value::Boolean(_) | Value::Null() | Value::Number(_) => value.clone(),
-            Value::String(val) => Value::String(self.replace_in_composite_string(val, previous)),
-            Value::VariableReference(name) => self.look_up_variable(name, previous),
-            Value::Array(array) => self.replace_in_array(array, previous),
-            Value::Object(object) => self.replace_in_object(object, previous),
-        };
-    }
-
-    fn look_up_variable(&self, name: &str, previous: &Option<SnapResponse>) -> Value {
-        if self.variables.contains_key(name) {
-            return self.variables.get(name).unwrap().clone();
-        }
-
-        if let Some(previous) = previous {
-            let previous_header_match = "previous.headers[\"";
-            if name.starts_with(previous_header_match) {
-                let header_name = name
-                    .strip_prefix(previous_header_match)
-                    .unwrap()
-                    .strip_suffix("\"]")
-                    .unwrap();
-                let header_value = previous.headers.get(header_name).unwrap().to_str().unwrap();
-                if let Ok(number) = header_value.parse::<i64>() {
-                    return Value::Number(Number::Int(number));
-                }
-                if let Ok(number) = header_value.parse::<f64>() {
-                    return Value::Number(Number::Fraction(number));
-                }
-                return Value::String(CompositeString {
-                    parts: [CompositeStringPart::Literal(header_value.to_string())].to_vec(),
-                });
-            }
-        }
-
-        panic!("Variable not found!");
-    }
-
-    fn replace_in_array(&self, array: &Array, previous: &Option<SnapResponse>) -> Value {
+    fn replace_in_array(&self, array: &Array) -> Value {
         let mut replaced = Vec::new();
         for element in &array.elements {
             replaced.push(Element {
-                value: self.replace_in_value(&element.value, previous),
+                value: self.replace_in_value(&element.value),
+                variable_store: element.variable_store.clone(),
+                comparison: element.comparison.clone()
             });
         }
         return Value::Array(Array { elements: replaced });
     }
 
-    fn replace_in_object(&self, object: &Object, previous: &Option<SnapResponse>) -> Value {
+    fn replace_in_object(&self, object: &Object) -> Value {
         let mut replaced = Vec::new();
         for member in &object.members {
             replaced.push(Member {
                 key: member.key.clone(),
                 value: Element {
-                    value: self.replace_in_value(&member.value.value, previous),
+                    value: self.replace_in_value(&member.value.value),
+                    variable_store: member.value.variable_store.clone(),
+                    comparison: member.value.comparison.clone(),
                 },
             });
         }
         return Value::Object(Object { members: replaced });
+    }
+
+    fn replace_in_snapshot(&self, snapshot: Snapshot) -> Snapshot {
+        let body = match snapshot.body.element.comparison {
+            Some(Comparison::Exact) => match snapshot.body.element.value {
+                Value::VariableReference(name) => self.look_up_variable(&name),
+                Value::Boolean(_) | Value::Null() | Value::Number(_) => {
+                    snapshot.body.element.value.clone()
+                }
+                Value::String(val) => Value::String(self.replace_in_composite_string(&val)),
+                Value::Array(array) => self.replace_in_array(&array),
+                Value::Object(object) => self.replace_in_object(&object),
+            },
+            _ => snapshot.body.element.value,
+        };
+
+        return Snapshot {
+            status: snapshot.status,
+            headers: snapshot.headers,
+            body: Json {
+                element: Element {
+                    value: body,
+                    variable_store: snapshot.body.element.variable_store,
+                    comparison: snapshot.body.element.comparison,
+                },
+            },
+        };
     }
 }

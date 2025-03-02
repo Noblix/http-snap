@@ -1,0 +1,179 @@
+include-headers: false
+
+@host = "https://localhost:50001"
+
+POST {{host}}/sign-in
+
+SNAPSHOT:
+status: 200
+
+null
+
+###
+
+GET {{host}}/api/items
+Content-Type: application/json; charset=utf-8
+
+SNAPSHOT:
+status: 200
+
+content-type: application/json; charset=utf-8
+date: _
+server: Kestrel
+transfer-encoding: chunked
+
+{
+  "items": _
+}
+
+###
+
+@text = "Buy eggs"
+
+POST {{host}}/api/items
+Content-Type: application/json; charset=utf-8
+
+{
+  "text": "{{text}}"
+}
+
+SNAPSHOT:
+status: 201
+
+content-type: application/json; charset=utf-8
+date: _
+server: Kestrel
+location: _ -> @item_uri
+transfer-encoding: chunked
+
+{
+  "id": _ -> @item_id
+}
+
+###
+
+GET {{host}}{{item_uri}}
+Content-Type: application/json; charset=utf-8
+
+SNAPSHOT:
+status: 200
+
+content-type: application/json; charset=utf-8
+date: _
+server: Kestrel
+transfer-encoding: chunked
+
+{
+  "id": "{{item_id}}",
+  "text": "{{text}}",
+  "isCompleted": false,
+  "lastUpdated": _
+}
+
+###
+
+POST {{host}}{{item_uri}}/complete
+Content-Type: application/json; charset=utf-8
+
+SNAPSHOT:
+status: 204
+
+date: _
+server: Kestrel
+
+null
+
+###
+
+GET {{host}}{{item_uri}}
+Content-Type: application/json; charset=utf-8
+
+SNAPSHOT:
+status: 200
+
+content-type: application/json; charset=utf-8
+date: _
+server: Kestrel
+transfer-encoding: chunked
+
+{
+  "id": "{{item_id}}",
+  "text": "{{text}}",
+  "isCompleted": true,
+  "lastUpdated": _
+}
+
+###
+
+GET {{host}}/api/items
+Content-Type: application/json; charset=utf-8
+
+SNAPSHOT:
+status: 200
+
+content-type: application/json; charset=utf-8
+date: _
+server: Kestrel
+transfer-encoding: chunked
+
+{
+  "items": _
+}
+
+###
+
+DELETE {{host}}{{item_uri}}
+Content-Type: application/json; charset=utf-8
+
+SNAPSHOT:
+status: 204
+
+date: _
+server: Kestrel
+
+null
+
+###
+
+GET {{host}}/api/items
+Content-Type: application/json; charset=utf-8
+
+SNAPSHOT:
+status: 200
+
+content-type: application/json; charset=utf-8
+date: _
+server: Kestrel
+transfer-encoding: chunked
+
+{
+  "items": [
+    {{before_items}},
+    {
+      "id": _,
+      "text": "{{text}}",
+      "isCompleted": true,
+      "lastUpdated": _     
+    }    
+  ]
+}
+
+###
+
+GET {{host}}{{item_uri}}
+Content-Type: application/json; charset=utf-8
+
+SNAPSHOT:
+status: 404
+
+content-type: application/problem+json
+date: _
+server: Kestrel
+transfer-encoding: chunked
+
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+  "title": "Not Found",
+  "status": 404,
+  "detail": "Item not found."
+}

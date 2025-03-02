@@ -1,0 +1,27 @@
+﻿POST https://localhost:50001/api/items
+Content-Type: application/json; charset=utf-8
+
+{
+  "text": "Something"
+}
+
+SNAPSHOT:
+status: 400
+
+content-type: application/problem+json
+date: _
+server: Kestrel
+transfer-encoding: chunked
+
+{
+"type": "123"
+}
+
+###
+
+POST https://localhost:50001/api/items
+Content-Type: application/json; charset=utf-8
+
+{
+  "text": "{{item_id}}"
+}

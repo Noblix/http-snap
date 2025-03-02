@@ -1,11 +1,9 @@
-﻿use crate::types::SnapResponse;
-use std::fs::read_to_string;
+﻿use std::fs::read_to_string;
 
 pub mod client;
 pub mod comparer;
 pub mod merger;
 pub mod parser;
-pub mod snapshot_types;
 pub mod types;
 pub mod variable_store;
 
@@ -19,12 +17,9 @@ pub async fn run(
 
     let client = client::HttpClient::new();
     let mut variable_store = variable_store::VariableStore::new();
-    let mut previous: Option<SnapResponse> = None;
     for (index, request_text) in request_texts.clone().iter().enumerate() {
         let http_file = parser::parse_file(request_text).unwrap();
-        let http_file_without_variables = variable_store.replace_variables(http_file, &previous);
-
-        println!("{:?}", http_file_without_variables);
+        let http_file_without_variables = variable_store.replace_variables(http_file);
 
         let response = client.send_request(&http_file_without_variables).await?;
         let parsed_response =
@@ -34,8 +29,8 @@ pub async fn run(
             comparer::compare_to_snapshot(&http_file_without_variables.snapshot, &parsed_response);
 
         if are_equal {
-            previous = Some(parsed_response);
-            println!("Snapshot {index} matches!")
+            println!("Snapshot {index} matches!");
+            variable_store.update_variables(&http_file_without_variables.snapshot, &parsed_response);
         } else if should_update {
             merger::merge_snapshots_into_files(
                 path_to_file,

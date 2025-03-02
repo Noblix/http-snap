@@ -27,6 +27,7 @@ pub(crate) fn snapshot_parser() -> impl Parser<char, Snapshot, Error = Simple<ch
         .then(headers_parser(true))
         .then_ignore(whitespace())
         .then(body_parser(true))
+        .then_ignore(whitespace().then(end()))
         .map(|((status, headers), body)| Snapshot {
             status,
             headers,

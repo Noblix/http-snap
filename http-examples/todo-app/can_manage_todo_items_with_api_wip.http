@@ -117,7 +117,17 @@ server: Kestrel
 transfer-encoding: chunked
 
 {
-  "items": _
+  "items":
+    {{before_items}}
+    +
+    [
+      {
+        "id": "{{item_id}}",
+        "text": "{{text}}",
+        "isCompleted": true,
+        "lastUpdated": _
+      }
+    ]
 }
 
 ###

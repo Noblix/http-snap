@@ -87,8 +87,7 @@ fn match_body(snapshot_body: &Json, response_body: &Json) -> bool {
 fn match_body_element(expected: &Element, actual: &Element) -> bool {
     return match expected.comparison {
         Some(Comparison::Ignore) => true,
-        Some(Comparison::Exact) => match_body_value(&expected.value, &actual.value),
-        _ => panic!("No comparison for snapshot element")
+        _ => match_body_value(&expected.value, &actual.value) // This is the same as exact
     };
 }
 

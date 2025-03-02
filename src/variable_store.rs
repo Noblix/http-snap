@@ -1,5 +1,5 @@
 ﻿use crate::types::{
-    Array, Comparison, CompositeString, CompositeStringPart, Element, Header, HttpFile, Json,
+    Array, CompositeString, CompositeStringPart, Element, Header, HttpFile, Json,
     Member, Object, SnapResponse, Snapshot, Value,
 };
 use reqwest::header::HeaderMap;
@@ -124,7 +124,7 @@ impl VariableStore {
                 value: self.replace_in_value(&body.element.value),
                 variable_store: body.element.variable_store.clone(),
                 comparison: body.element.comparison.clone(),
-            }
+            },
         };
     }
 
@@ -157,7 +157,7 @@ impl VariableStore {
             replaced.push(Element {
                 value: self.replace_in_value(&element.value),
                 variable_store: element.variable_store.clone(),
-                comparison: element.comparison.clone()
+                comparison: element.comparison.clone(),
             });
         }
         return Value::Array(Array { elements: replaced });
@@ -179,29 +179,12 @@ impl VariableStore {
     }
 
     fn replace_in_snapshot(&self, snapshot: Snapshot) -> Snapshot {
-        let body = match snapshot.body.element.comparison {
-            Some(Comparison::Exact) => match snapshot.body.element.value {
-                Value::VariableReference(name) => self.look_up_variable(&name),
-                Value::Boolean(_) | Value::Null() | Value::Number(_) => {
-                    snapshot.body.element.value.clone()
-                }
-                Value::String(val) => Value::String(self.replace_in_composite_string(&val)),
-                Value::Array(array) => self.replace_in_array(&array),
-                Value::Object(object) => self.replace_in_object(&object),
-            },
-            _ => snapshot.body.element.value,
-        };
+        let body = self.replace_in_body(&snapshot.body);
 
         return Snapshot {
             status: snapshot.status,
             headers: snapshot.headers,
-            body: Json {
-                element: Element {
-                    value: body,
-                    variable_store: snapshot.body.element.variable_store,
-                    comparison: snapshot.body.element.comparison,
-                },
-            },
+            body,
         };
     }
 }

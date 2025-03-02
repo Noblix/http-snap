@@ -23,7 +23,7 @@ server: Kestrel
 transfer-encoding: chunked
 
 {
-  "items": _
+  "items": _ -> @before_items
 }
 
 ###
@@ -147,15 +147,7 @@ server: Kestrel
 transfer-encoding: chunked
 
 {
-  "items": [
-    {{before_items}},
-    {
-      "id": _,
-      "text": "{{text}}",
-      "isCompleted": true,
-      "lastUpdated": _     
-    }    
-  ]
+  "items": {{before_items}}
 }
 
 ###

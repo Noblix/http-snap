@@ -1,6 +1,6 @@
 ﻿use crate::types::{
-    Array, CompositeString, CompositeStringPart, Element, Header, HttpFile, Json,
-    Member, Object, SnapResponse, Snapshot, Value,
+    Array, CompositeString, CompositeStringPart, Element, Header, HttpFile, Json, Member, Object,
+    SnapResponse, Snapshot, Value,
 };
 use reqwest::header::HeaderMap;
 use std::collections::HashMap;
@@ -66,10 +66,10 @@ impl VariableStore {
                 }
             }
             (Value::Array(snapshot_array), Value::Array(response_array)) => {
-                for (index, element) in snapshot_array.elements.iter().enumerate() {
+                for (index, element) in snapshot_array.get_elements().iter().enumerate() {
                     self.extract_variables_from_body(
                         element,
-                        response_array.elements.get(index).unwrap(),
+                        response_array.get_elements().get(index).unwrap(),
                     )
                 }
             }
@@ -105,8 +105,8 @@ impl VariableStore {
             Value::VariableReference(name) => self.look_up_variable(&name),
             Value::Boolean(_) | Value::Null() | Value::Number(_) => value.clone(),
             Value::String(val) => Value::String(self.replace_in_composite_string(val)),
-            Value::Array(array) => self.replace_in_array(array),
-            Value::Object(object) => self.replace_in_object(object),
+            Value::Array(array) => Value::Array(self.replace_in_array(array)),
+            Value::Object(object) => Value::Object(self.replace_in_object(object)),
         };
     }
 
@@ -151,19 +151,37 @@ impl VariableStore {
         };
     }
 
-    fn replace_in_array(&self, array: &Array) -> Value {
-        let mut replaced = Vec::new();
-        for element in &array.elements {
-            replaced.push(Element {
-                value: self.replace_in_value(&element.value),
-                variable_store: element.variable_store.clone(),
-                comparison: element.comparison.clone(),
-            });
+    fn replace_in_array(&self, array: &Array) -> Array {
+        match &array {
+            Array::VariableReference(name) => {
+                let variable_value = self.look_up_variable(&name);
+                match variable_value {
+                    Value::Array(value) => value,
+                    _ => panic!("Variable {name} is not of type array"),
+                }
+            }
+            Array::Literal(elements) => {
+                let mut replaced = Vec::new();
+                for element in elements {
+                    replaced.push(Element {
+                        value: self.replace_in_value(&element.value),
+                        variable_store: element.variable_store.clone(),
+                        comparison: element.comparison.clone(),
+                    });
+                }
+                return Array::Literal(replaced);
+            }
+            Array::Composite(parts) => {
+                let mut replaced = Vec::new();
+                for part in parts {
+                    replaced.push(self.replace_in_array(&part));
+                }
+                return Array::Composite(replaced);
+            }
         }
-        return Value::Array(Array { elements: replaced });
     }
 
-    fn replace_in_object(&self, object: &Object) -> Value {
+    fn replace_in_object(&self, object: &Object) -> Object {
         let mut replaced = Vec::new();
         for member in &object.members {
             replaced.push(Member {
@@ -175,7 +193,7 @@ impl VariableStore {
                 },
             });
         }
-        return Value::Object(Object { members: replaced });
+        return Object { members: replaced };
     }
 
     fn replace_in_snapshot(&self, snapshot: Snapshot) -> Snapshot {

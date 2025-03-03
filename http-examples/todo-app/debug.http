@@ -1,4 +1,15 @@
-﻿POST https://localhost:50001/api/items
+﻿include-headers: false
+
+POST https://localhost:50001/sign-in
+
+SNAPSHOT:
+status: 200
+
+null
+
+###
+
+POST https://localhost:50001/api/items
 Content-Type: application/json; charset=utf-8
 
 {
@@ -14,7 +25,7 @@ server: Kestrel
 transfer-encoding: chunked
 
 {
-"type": "123"
+  "type": "123"
 }
 
 ###

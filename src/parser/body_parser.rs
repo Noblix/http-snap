@@ -38,13 +38,13 @@ pub(crate) fn value_parser(
         .or(just("false").map(|_| Value::Boolean(false)));
     let null = just("null").map(|_| Value::Null());
 
-    return variable
-        .or(object_parser(element_parser.clone()))
+    return object_parser(element_parser.clone())
         .or(array_parser(element_parser.clone()))
         .or(string_value_parser())
         .or(number_value_parser())
         .or(boolean)
-        .or(null);
+        .or(null)
+        .or(variable);
 }
 
 fn object_parser(
@@ -93,17 +93,23 @@ fn member_key_parser() -> impl Parser<char, String, Error = Simple<char>> {
 fn array_parser(
     element_parser: impl Parser<char, Element, Error = Simple<char>> + Clone,
 ) -> impl Parser<char, Value, Error = Simple<char>> {
-    let empty = whitespace().delimited_by(just("["), just("]")).map(|_| {
-        Value::Array(Array {
-            elements: Vec::new(),
-        })
-    });
-
-    let elements = elements_parser(element_parser)
+    let empty = whitespace()
         .delimited_by(just("["), just("]"))
-        .map(|elements| Value::Array(Array { elements }));
+        .map(|_| Value::Array(Array::Literal(Vec::new())));
 
-    return empty.or(elements);
+    let literal = elements_parser(element_parser.clone())
+        .delimited_by(just("["), just("]"))
+        .map(|elements| Value::Array(Array::Literal(elements)));
+
+    let composite = (elements_parser(element_parser.clone())
+        .delimited_by(just("["), just("]"))
+        .map(|elements| Array::Literal(elements)))
+    .or(variable_name_string_parser().map(|name| Array::VariableReference(name)))
+    .separated_by(whitespace().then(just('+').then(whitespace())))
+    .at_least(2)
+    .map(|parts| Value::Array(Array::Composite(parts)));
+
+    return empty.or(literal).or(composite);
 }
 
 fn elements_parser(

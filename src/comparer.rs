@@ -1,4 +1,6 @@
-﻿use crate::types::{Array, Comparison, Element, Header, Json, Number, Object, SnapResponse, Snapshot, Value};
+﻿use crate::types::{
+    Array, Comparison, Element, Header, Json, Number, Object, SnapResponse, Snapshot, Value,
+};
 use reqwest::header::HeaderMap;
 use std::collections::HashMap;
 
@@ -32,9 +34,7 @@ pub fn compare_to_snapshot(snapshot: &Snapshot, response: &SnapResponse) -> bool
 
 fn match_status(snapshot_status: &Number, response_status: &u16) -> bool {
     return match snapshot_status {
-        Number::Int(value) => {
-            value == &(response_status.clone() as i64)
-        }
+        Number::Int(value) => value == &(response_status.clone() as i64),
         _ => false,
     };
 }
@@ -71,7 +71,7 @@ fn match_headers(snapshot_headers: &Vec<Header>, response_header: &HeaderMap) ->
             return false;
         }
     }
-    
+
     if response_header.len() > snapshot_headers.len() {
         println!("Response contains headers not present in snapshot");
         return false;
@@ -87,7 +87,7 @@ fn match_body(snapshot_body: &Json, response_body: &Json) -> bool {
 fn match_body_element(expected: &Element, actual: &Element) -> bool {
     return match expected.comparison {
         Some(Comparison::Ignore) => true,
-        _ => match_body_value(&expected.value, &actual.value) // This is the same as exact
+        _ => match_body_value(&expected.value, &actual.value), // This is the same as exact
     };
 }
 
@@ -142,13 +142,16 @@ fn match_body_object(expected: &Object, actual: &Object) -> bool {
 }
 
 fn match_body_array(expected: &Array, actual: &Array) -> bool {
-    if expected.elements.len() != actual.elements.len() {
+    if expected.get_elements().len() != actual.get_elements().len() {
         return false;
     }
 
-    let zipped = expected.elements.iter().zip(actual.elements.iter());
+    let zipped = expected
+        .get_elements()
+        .into_iter()
+        .zip(actual.get_elements().into_iter());
     for (expected_element, actual_element) in zipped {
-        let matches_expected = match_body_element(expected_element, actual_element);
+        let matches_expected = match_body_element(&expected_element, &actual_element);
         if !matches_expected {
             return false;
         }

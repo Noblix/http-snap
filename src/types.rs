@@ -174,8 +174,27 @@ pub struct Member {
 }
 
 #[derive(Debug, Clone)]
-pub struct Array {
-    pub elements: Vec<Element>,
+pub enum Array {
+    VariableReference(String),
+    Literal(Vec<Element>),
+    Composite(Vec<Array>)
+}
+
+impl Array {
+    pub(crate) fn get_elements(&self) -> Vec<Element> {
+        return match self {
+            Array::Literal(elements) => elements.clone(),
+            Array::Composite(parts) => {
+                let mut result = Vec::new();
+                for part in parts {
+                    result.extend(part.get_elements());
+                }
+                result
+            },
+            Array::VariableReference(name) =>
+                panic!("Variable named {name} has not been replaced yet")
+        };
+    }
 }
 
 impl Serialize for Array {
@@ -183,8 +202,8 @@ impl Serialize for Array {
     where
         S: Serializer,
     {
-        let mut seq = serializer.serialize_seq(Some(self.elements.len()))?;
-        for element in &self.elements {
+        let mut seq = serializer.serialize_seq(Some(self.get_elements().len()))?;
+        for element in &self.get_elements() {
             seq.serialize_element(element)?;
         }
         return seq.end();

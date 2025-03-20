@@ -1,17 +1,22 @@
-use http_snap::{run};
+use crate::cli::{expand_paths, Cli, Commands};
+use clap::Parser;
+use http_snap::run;
+
+mod cli;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Arguments should come from CLI
-    return run(
-        "http-examples/todo-app/can_manage_todo_items_with_api_wip.http"
-        //"http-examples/todo-app/cannot_create_todo_item_with_no_text.http"
-        //"http-examples/todo-app/cannot_complete_todo_item_multiple_times.http"
-        //"http-examples/todo-app/cannot_complete_deleted_todo_item.http"
-        //"http-examples/todo-app/cannot_delete_todo_item_multiple_times.http"
-        //"http-examples/todo-app/sign_in.http"
-        //"http-examples/todo-app/debug.http"
-    ,
-    false)
-    .await;
+    let args = Cli::parse();
+
+    let (path, use_test_mode) = match args.command {
+        Commands::Test { global } => (global.path, true),
+        Commands::Update { global } => (global.path, false),
+    };
+
+    let expanded_paths = expand_paths(path);
+    for path in expanded_paths {
+        println!("{:?}", path);
+        let _result = run(&path, use_test_mode).await;
+    }
+    return Ok(());
 }

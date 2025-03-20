@@ -1,9 +1,10 @@
 ﻿use crate::types::SnapResponse;
 use std::fs::File;
 use std::io::Write;
+use std::path::PathBuf;
 
 pub fn merge_snapshots_into_files(
-    path_to_file: &str,
+    path_to_file: &PathBuf,
     request_texts: &Vec<&str>,
     index: usize,
     parsed_response: SnapResponse,

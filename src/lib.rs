@@ -1,4 +1,5 @@
 ﻿use std::fs::read_to_string;
+use std::path::PathBuf;
 
 pub mod client;
 pub mod comparer;
@@ -8,7 +9,7 @@ pub mod types;
 pub mod variable_store;
 
 pub async fn run(
-    path_to_file: &str,
+    path_to_file: &PathBuf,
     should_update: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let raw_text = read_to_string(path_to_file).unwrap();

@@ -19,6 +19,10 @@ pub(crate)struct GlobalOptions {
     /// File path or directory to process (supports wildcards)
     #[arg(long, required = true)]
     pub(crate)path: PathBuf,
+
+    /// Enable verbose output
+    #[arg(short, long)]
+    pub(crate)verbose: bool,
 }
 
 /// Enum of subcommands (test and update)
@@ -48,11 +52,11 @@ pub(crate) fn expand_paths(path: PathBuf) -> Vec<PathBuf> {
                 for entry in paths {
                     match entry {
                         Ok(p) => expanded.push(p),
-                        Err(e) => eprintln!("Error expanding path: {}", e),
+                        Err(e) => log::error!("Error expanding path: {}", e),
                     }
                 }
             }
-            Err(e) => eprintln!("Glob pattern error: {}", e),
+            Err(e) => log::error!("Glob pattern error: {}", e),
         }
     } else {
         expanded.push(path);

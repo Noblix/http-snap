@@ -7,8 +7,8 @@ use std::collections::HashMap;
 pub fn compare_to_snapshot(snapshot: &Snapshot, response: &SnapResponse) -> bool {
     let status_matches = match_status(&snapshot.status, &response.status);
     if !status_matches {
-        println!("Status did not match snapshot");
-        println!(
+        log::error!("Status did not match snapshot");
+        log::error!(
             "Expected: {:?} but got {:?}",
             snapshot.status, response.status
         );
@@ -18,14 +18,13 @@ pub fn compare_to_snapshot(snapshot: &Snapshot, response: &SnapResponse) -> bool
     if response.options.include_headers {
         let headers_match = match_headers(&snapshot.headers, &response.headers);
         if !headers_match {
-            println!("Headers did not match snapshot");
             return false;
         }
     }
 
     let body_match = match_body(&snapshot.body, &response.body);
     if !body_match {
-        println!("Body did not match snapshot");
+        log::error!("Body did not match snapshot");
         return false;
     }
 
@@ -42,7 +41,6 @@ fn match_status(snapshot_status: &Number, response_status: &u16) -> bool {
 fn match_headers(snapshot_headers: &Vec<Header>, response_header: &HeaderMap) -> bool {
     for snapshot_header in snapshot_headers {
         if matches!(snapshot_header.comparison, Some(Comparison::Ignore)) {
-            println!("Ignored header called: {:?}", snapshot_header.name);
             continue;
         }
 
@@ -59,11 +57,11 @@ fn match_headers(snapshot_headers: &Vec<Header>, response_header: &HeaderMap) ->
         };
 
         if !matched_snapshot {
-            println!(
+            log::error!(
                 "Header named: {:?} did NOT match snapshot",
                 snapshot_header.name
             );
-            println!(
+            log::error!(
                 "Expected: {:?} but got {:?}",
                 snapshot_header.value,
                 response_header.get(&snapshot_header.name).unwrap()
@@ -73,7 +71,7 @@ fn match_headers(snapshot_headers: &Vec<Header>, response_header: &HeaderMap) ->
     }
 
     if response_header.len() > snapshot_headers.len() {
-        println!("Response contains headers not present in snapshot");
+        log::error!("Response contains headers not present in snapshot");
         return false;
     }
 
@@ -127,13 +125,13 @@ fn match_body_object(expected: &Object, actual: &Object) -> bool {
     for member in &expected.members {
         let actual_member = actual_members.get(&member.key);
         if actual_member.is_none() {
-            println!("Could not find expected member named {:?}", member.key);
+            log::error!("Could not find expected member named {:?}", member.key);
             return false;
         }
 
         let matched_member = match_body_element(&member.value, &actual_member.unwrap().value);
         if !matched_member {
-            println!("Member named: {:?} did NOT match snapshot", member.key);
+            log::error!("Member named: {:?} did NOT match snapshot", member.key);
             return false;
         }
     }

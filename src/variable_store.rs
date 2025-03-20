@@ -5,8 +5,8 @@
 use reqwest::header::HeaderMap;
 use std::collections::HashMap;
 
-pub struct VariableStore {
-    variables: HashMap<String, Value>,
+pub(crate) struct VariableStore {
+    pub(crate) variables: HashMap<String, Value>,
 }
 
 impl VariableStore {

@@ -8,15 +8,39 @@ mod cli;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::parse();
 
-    let (path, use_test_mode) = match args.command {
-        Commands::Test { global } => (global.path, true),
-        Commands::Update { global } => (global.path, false),
+    let (options, use_test_mode) = match args.command {
+        Commands::Test { global } => (global, true),
+        Commands::Update { global } => (global, false),
     };
 
-    let expanded_paths = expand_paths(path);
+    let log_level = if options.verbose {
+        log::LevelFilter::Debug
+    } else {
+        log::LevelFilter::Info
+    };
+    env_logger::Builder::from_default_env()
+        .filter_level(log_level)
+        .init();
+
+    let expanded_paths = expand_paths(options.path);
+    let mut total_count = 0;
+    let mut failed_count = 0;
     for path in expanded_paths {
-        println!("{:?}", path);
-        let _result = run(&path, use_test_mode).await;
+        total_count += 1;
+        log::info!("Running {:?}", path);
+        let result = run(&path, use_test_mode).await;
+        if result? {
+            log::info!("Test {:?} passed", path);
+        } else {
+            failed_count += 1;
+            log::error!("Test {:?} failed", path);
+        }
     }
+
+    log::info!(
+        "Ran {total_count} tests: {0} passed and {failed_count} failed",
+        total_count - failed_count
+    );
+
     return Ok(());
 }

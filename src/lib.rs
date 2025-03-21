@@ -14,6 +14,7 @@ pub mod variable_store;
 pub async fn run(
     path_to_file: &PathBuf,
     should_update: bool,
+    stop_on_failure: bool,
 ) -> Result<bool, Box<dyn std::error::Error>> {
     let raw_text = read_to_string(path_to_file).unwrap();
     let text = raw_text.trim_start_matches("\u{feff}");
@@ -21,6 +22,7 @@ pub async fn run(
 
     let client = client::HttpClient::new();
     let mut variable_store = variable_store::VariableStore::new();
+    let mut passed = true;
     for (index, request_text) in request_texts.clone().iter().enumerate() {
         let http_file = parser::parse_file(request_text).unwrap();
         let http_file_without_variables = variable_store.replace_variables(http_file);
@@ -41,6 +43,8 @@ pub async fn run(
             variable_store
                 .update_variables(&http_file_without_variables.snapshot, &parsed_response);
         } else {
+            passed = false;
+
             if should_update {
                 merger::merge_snapshots_into_files(
                     path_to_file,
@@ -51,11 +55,14 @@ pub async fn run(
             }
 
             log::error!("Snapshot {0} did NOT match", index + 1);
-            return Ok(false);
+            
+            if stop_on_failure {
+                break;
+            }
         }
     }
 
-    return Ok(true);
+    return Ok(passed);
 }
 
 fn log_variable_store(variable_store: &variable_store::VariableStore) {

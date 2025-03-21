@@ -38,7 +38,17 @@ pub(crate) enum Commands {
     Update {
         #[command(flatten)]
         global: GlobalOptions,
+
+        #[command(flatten)]
+        options: UpdateOptions,
     },
+}
+
+#[derive(Debug, Args)]
+pub struct UpdateOptions {
+    /// Continue updating tests in spite of response mismatches
+    #[arg(long = "continue-on-failure", action = clap::ArgAction::SetFalse, default_value_t = true)]
+    pub(crate) stop_in_failure: bool,
 }
 
 pub(crate) fn expand_paths(path: PathBuf) -> Vec<PathBuf> {

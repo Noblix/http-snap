@@ -8,9 +8,9 @@ mod cli;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::parse();
 
-    let (options, use_test_mode) = match args.command {
-        Commands::Test { global } => (global, true),
-        Commands::Update { global } => (global, false),
+    let (options, should_update, stop_on_failure) = match args.command {
+        Commands::Test { global } => (global, false, true),
+        Commands::Update { global, options } => (global, true, options.stop_in_failure),
     };
 
     let log_level = if options.verbose {
@@ -28,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for path in expanded_paths {
         total_count += 1;
         log::info!("Running {:?}", path);
-        let result = run(&path, use_test_mode).await;
+        let result = run(&path, should_update, stop_on_failure).await;
         if result? {
             log::info!("Test {:?} passed", path);
         } else {

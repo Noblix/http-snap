@@ -54,7 +54,7 @@ fn get_headers(request_headers: &Vec<Header>) -> HeaderMap {
     for header in request_headers {
         headers.insert(
             HeaderName::from_bytes(header.name.as_ref()).unwrap(),
-            header.value.parse().unwrap(),
+            header.value.to_string().parse().unwrap(),
         );
     }
     return headers;

@@ -1,6 +1,6 @@
-﻿@name = John
-@user = doe
-@guid = 1e9caebd-3621-4c1f-9e78-cb176bac540f
+@name = "John"
+@user = "doe"
+@guid = "bbb6d93e-8727-4eac-83bb-5ec6ec7513a3"
 
 POST https://webhook.site/{{guid}}
 Authorization: Basic {{user}} 12345678
@@ -9,3 +9,16 @@ Content-Type: application/json
 {
   "details": "Hello {{name}}!"
 }
+
+SNAPSHOT:
+status: 200
+
+server: nginx
+content-type: text/html; charset=UTF-8
+transfer-encoding: chunked
+x-request-id: _
+x-token-id: _
+cache-control: no-cache, private
+date: _
+
+null

@@ -55,6 +55,12 @@ pub struct CompositeString {
     pub parts: Vec<CompositeStringPart>,
 }
 
+impl CompositeString {
+    pub fn new(parts: Vec<CompositeStringPart>) -> Self {
+        return Self { parts };
+    }
+}
+
 impl Display for CompositeString {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let str = self
@@ -86,7 +92,7 @@ impl Display for CompositeStringPart {
 #[derive(Debug)]
 pub struct Header {
     pub name: String,
-    pub value: String,
+    pub value: CompositeString,
     pub variable_store: Option<String>,
     pub comparison: Option<Comparison>
 }

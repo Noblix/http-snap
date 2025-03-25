@@ -48,7 +48,7 @@ fn match_headers(snapshot_headers: &Vec<Header>, response_header: &HeaderMap) ->
             Some(Comparison::Exact) => {
                 let response_value_option = response_header.get(&snapshot_header.name);
                 if let Some(response_value) = response_value_option {
-                    response_value.to_str().unwrap() == snapshot_header.value
+                    response_value.to_str().unwrap() == snapshot_header.value.to_string()
                 } else {
                     false
                 }

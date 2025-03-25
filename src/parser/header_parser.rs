@@ -6,6 +6,7 @@ use chumsky::prelude::*;
 use chumsky::text::whitespace;
 use chumsky::Parser;
 use std::ops::Add;
+use crate::parser::body_parser;
 
 pub(crate) fn headers_parser(
     compare: bool,
@@ -42,7 +43,7 @@ fn headers_compare_parser() -> Box<dyn Parser<char, Vec<Header>, Error = Simple<
             .then_ignore(just(':'))
             .then_ignore(repeated_spaces())
             .then(
-                (ignore_comparison_parser().map(|_| (String::new(), Some(Comparison::Ignore))))
+                (ignore_comparison_parser().map(|_| (CompositeString::new(Vec::new()), Some(Comparison::Ignore))))
                     .or(header_value().map(|value| (value, Some(Comparison::Exact)))),
             )
             .then(variable_store_parser().or_not())
@@ -68,9 +69,6 @@ fn header_key() -> impl Parser<char, String, Error = Simple<char>> {
         .foldl(|start, c| start.add(&c.to_string()));
 }
 
-fn header_value() -> impl Parser<char, String, Error = Simple<char>> {
-    return filter(|x: &char| x != &'\r' && x != &'\n' && x != &'{' && x != &'}')
-        .repeated()
-        .at_least(1)
-        .map(|chars: Vec<char>| chars.into_iter().collect::<String>());
+fn header_value() -> impl Parser<char, CompositeString, Error = Simple<char>> {
+    return body_parser::characters_parser();
 }

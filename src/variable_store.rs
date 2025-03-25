@@ -80,6 +80,7 @@ impl VariableStore {
     pub(crate) fn replace_variables(&mut self, input: HttpFile) -> HttpFile {
         self.extend_variables(&input.variables);
         let url_replaced = self.replace_in_composite_string(&input.url);
+        let header_replaced = self.replace_in_headers(&input.headers);
         let body_replaced = self.replace_in_body(&input.body);
         let snapshot_replaced = self.replace_in_snapshot(input.snapshot);
         return HttpFile {
@@ -87,7 +88,7 @@ impl VariableStore {
             variables: input.variables,
             verb: input.verb,
             url: url_replaced,
-            headers: input.headers,
+            headers: header_replaced,
             body: body_replaced,
             snapshot: snapshot_replaced,
         };
@@ -98,6 +99,19 @@ impl VariableStore {
             let value = self.replace_in_value(new_var_value);
             self.variables.insert(new_var_name.clone(), value);
         }
+    }
+    
+    fn replace_in_headers(&mut self, headers: &Vec<Header>) -> Vec<Header> {
+        let mut result = Vec::new();
+        for header in headers {
+            result.push(Header {
+                name: header.name.clone(),
+                comparison: header.comparison.clone(),
+                value: self.replace_in_composite_string(&header.value),
+                variable_store: header.variable_store.clone(),
+            });
+        }
+        return result;
     }
 
     fn replace_in_value(&self, value: &Value) -> Value {

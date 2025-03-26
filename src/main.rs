@@ -6,6 +6,14 @@ mod cli;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(debug_assertions)]
+    let args = Cli::try_parse_from(vec![
+        "http-snap",                  // program name (usually ignored)
+        "test",
+        "--path", "./http-examples/post-small-body.http",
+    ])?;
+
+    #[cfg(not(debug_assertions))]
     let args = Cli::parse();
 
     let (options, should_update, stop_on_failure) = match args.command {

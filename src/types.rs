@@ -25,7 +25,8 @@ pub struct Snapshot {
 #[derive(Debug, Clone)]
 pub enum Comparison {
     Exact,
-    Ignore
+    Ignore,
+    TimestampFormat(CompositeString)
 }
 
 #[derive(Debug)]

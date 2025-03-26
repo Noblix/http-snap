@@ -1,7 +1,8 @@
 ﻿use crate::types::{
     Array, Comparison, Element, Header, Json, Number, Object, SnapResponse, Snapshot, Value,
 };
-use reqwest::header::HeaderMap;
+use chrono::{DateTime, NaiveDateTime};
+use reqwest::header::{HeaderMap, HeaderValue};
 use std::collections::HashMap;
 
 pub fn compare_to_snapshot(snapshot: &Snapshot, response: &SnapResponse) -> bool {
@@ -10,7 +11,8 @@ pub fn compare_to_snapshot(snapshot: &Snapshot, response: &SnapResponse) -> bool
         log::error!("Status did not match snapshot");
         log::error!(
             "Expected: {:?} but got {:?}",
-            snapshot.status, response.status
+            snapshot.status,
+            response.status
         );
         return false;
     }
@@ -53,19 +55,27 @@ fn match_headers(snapshot_headers: &Vec<Header>, response_header: &HeaderMap) ->
                     false
                 }
             }
+            Some(Comparison::TimestampFormat(pattern)) => {
+                let response_value_option = response_header.get(&snapshot_header.name);
+                if let Some(response_value) = response_value_option {
+                    log::info!("{}", response_value.to_str().unwrap());
+                    log::info!("{}", pattern.to_string());
+                    let value = response_value.to_str().unwrap();
+                    let pattern = pattern.to_string(); 
+                    if DateTime::parse_from_str(&value, &pattern).is_ok() {
+                        true
+                    } else {
+                        NaiveDateTime::parse_from_str(&value, &pattern).is_ok()
+                    }
+                } else {
+                    false
+                }
+            }
             _ => false,
         };
 
         if !matched_snapshot {
-            log::error!(
-                "Header named: {:?} did NOT match snapshot",
-                snapshot_header.name
-            );
-            log::error!(
-                "Expected: {:?} but got {:?}",
-                snapshot_header.value,
-                response_header.get(&snapshot_header.name).unwrap()
-            );
+            log_header_mismatch(snapshot_header, response_header.get(&snapshot_header.name));
             return false;
         }
     }
@@ -169,4 +179,31 @@ fn match_body_number(expected: &Number, actual: &Number) -> bool {
         }
         _ => false,
     };
+}
+
+fn log_header_mismatch(snapshot_header: &Header, response_header: Option<&HeaderValue>) {
+    log::error!(
+        "Header named: {:?} did NOT match snapshot",
+        snapshot_header.name
+    );
+    match &snapshot_header.comparison {
+        Some(Comparison::Exact) => {
+            log::error!(
+                "Expected: {:?} but got {:?}",
+                snapshot_header.value,
+                response_header.unwrap()
+            );
+        }
+        Some(Comparison::TimestampFormat(pattern)) => {
+            log::error!(
+                "Timestamp {:?} does not match pattern {}",
+                response_header.unwrap(),
+                pattern.to_string()
+            );
+        }
+        _ => panic!(
+            "Comparison type {:?} not supported for headers",
+            &snapshot_header.comparison
+        ),
+    }
 }

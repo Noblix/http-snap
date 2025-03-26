@@ -1,4 +1,4 @@
-﻿use crate::parser::body_parser::body_parser;
+﻿use crate::parser::body_parser::{body_parser, characters_parser};
 use crate::parser::header_parser::headers_parser;
 use crate::types::{Comparison, Element, Json, Number, Snapshot, Value};
 use chumsky::error::Simple;
@@ -15,7 +15,7 @@ pub(crate) fn snapshot_parser() -> impl Parser<char, Snapshot, Error = Simple<ch
             element: Element {
                 value: Value::Null(),
                 variable_store: None,
-                comparison: Some(Comparison::Ignore)
+                comparison: Some(Comparison::Ignore),
             },
         },
     });
@@ -42,6 +42,13 @@ pub(crate) fn ignore_comparison_parser() -> impl Parser<char, Comparison, Error 
         .then(just("_"))
         .then_ignore(whitespace())
         .map(|_| Comparison::Ignore);
+}
+
+pub(crate) fn timestamp_format_parser() -> impl Parser<char, Comparison, Error = Simple<char>> {
+    return whitespace()
+        .then(just("timestamp"))
+        .ignore_then(characters_parser().delimited_by(just("(\""), just("\")")))
+        .map(|pattern| Comparison::TimestampFormat(pattern));
 }
 
 fn status_parser() -> impl Parser<char, Number, Error = Simple<char>> {

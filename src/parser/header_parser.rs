@@ -1,4 +1,5 @@
-﻿use crate::parser::snapshot_parser::ignore_comparison_parser;
+﻿use crate::parser::body_parser;
+use crate::parser::snapshot_parser::{ignore_comparison_parser, timestamp_format_parser};
 use crate::parser::variable_parser::variable_store_parser;
 use crate::types::*;
 use chumsky::error::Simple;
@@ -6,7 +7,6 @@ use chumsky::prelude::*;
 use chumsky::text::whitespace;
 use chumsky::Parser;
 use std::ops::Add;
-use crate::parser::body_parser;
 
 pub(crate) fn headers_parser(
     compare: bool,
@@ -42,10 +42,13 @@ fn headers_compare_parser() -> Box<dyn Parser<char, Vec<Header>, Error = Simple<
         header_key()
             .then_ignore(just(':'))
             .then_ignore(repeated_spaces())
-            .then(
-                (ignore_comparison_parser().map(|_| (CompositeString::new(Vec::new()), Some(Comparison::Ignore))))
-                    .or(header_value().map(|value| (value, Some(Comparison::Exact)))),
-            )
+            .then(choice((
+                timestamp_format_parser()
+                    .map(|pattern| (CompositeString::new(Vec::new()), Some(pattern))),
+                ignore_comparison_parser()
+                    .map(|_| (CompositeString::new(Vec::new()), Some(Comparison::Ignore))),
+                header_value().map(|value| (value, Some(Comparison::Exact))),
+            )))
             .then(variable_store_parser().or_not())
             .then_ignore(whitespace())
             .map(|((name, (value, comparison)), variable_store)| Header {

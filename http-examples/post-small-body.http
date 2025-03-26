@@ -1,6 +1,6 @@
 @name = "John"
 @user = "doe"
-@guid = "bbb6d93e-8727-4eac-83bb-5ec6ec7513a3"
+@guid = "f849146f-ceaa-49e9-8d41-977fcb1e830d"
 
 POST https://webhook.site/{{guid}}
 Authorization: Basic {{user}} 12345678
@@ -19,6 +19,6 @@ transfer-encoding: chunked
 x-request-id: _
 x-token-id: _
 cache-control: no-cache, private
-date: _
+date: timestamp("%a, %d %b %Y %H:%M:%S GMT")
 
 null

@@ -1,6 +1,4 @@
-﻿use crate::types::{
-    Array, Comparison, Element, Header, Json, Number, Object, SnapResponse, Snapshot, Value,
-};
+﻿use crate::types::{Array, Comparison, CompositeString, Element, Header, Json, Number, Object, SnapResponse, Snapshot, Value};
 use chrono::{DateTime, NaiveDateTime};
 use reqwest::header::{HeaderMap, HeaderValue};
 use std::collections::HashMap;
@@ -58,15 +56,8 @@ fn match_headers(snapshot_headers: &Vec<Header>, response_header: &HeaderMap) ->
             Some(Comparison::TimestampFormat(pattern)) => {
                 let response_value_option = response_header.get(&snapshot_header.name);
                 if let Some(response_value) = response_value_option {
-                    log::info!("{}", response_value.to_str().unwrap());
-                    log::info!("{}", pattern.to_string());
                     let value = response_value.to_str().unwrap();
-                    let pattern = pattern.to_string(); 
-                    if DateTime::parse_from_str(&value, &pattern).is_ok() {
-                        true
-                    } else {
-                        NaiveDateTime::parse_from_str(&value, &pattern).is_ok()
-                    }
+                    compare_timestamp_format(pattern, value)
                 } else {
                     false
                 }
@@ -93,10 +84,21 @@ fn match_body(snapshot_body: &Json, response_body: &Json) -> bool {
 }
 
 fn match_body_element(expected: &Element, actual: &Element) -> bool {
-    return match expected.comparison {
+    return match &expected.comparison {
         Some(Comparison::Ignore) => true,
+        Some(Comparison::TimestampFormat(pattern)) => match_body_timestamp(&pattern, &actual.value),
         _ => match_body_value(&expected.value, &actual.value), // This is the same as exact
     };
+}
+
+fn match_body_timestamp(pattern: &CompositeString, actual: &Value) -> bool {
+    return match actual { 
+        Value::String(actual_string) => compare_timestamp_format(pattern, &actual_string.to_string()),
+        _ => {
+            log::error!("Value {:?} is not a string", actual);
+            false
+        }
+    }
 }
 
 fn match_body_value(expected: &Value, actual: &Value) -> bool {
@@ -205,5 +207,14 @@ fn log_header_mismatch(snapshot_header: &Header, response_header: Option<&Header
             "Comparison type {:?} not supported for headers",
             &snapshot_header.comparison
         ),
+    }
+}
+
+fn compare_timestamp_format(pattern: &CompositeString, value: &str) -> bool {
+    let pattern = pattern.to_string();
+    return if DateTime::parse_from_str(&value, &pattern).is_ok() {
+        true
+    } else {
+        NaiveDateTime::parse_from_str(&value, &pattern).is_ok()
     }
 }

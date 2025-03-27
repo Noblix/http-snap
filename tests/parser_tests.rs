@@ -95,7 +95,7 @@ fn post_with_body_and_snapshot() {
             }
         }
         
-        SNAPSHOT:
+        SNAPSHOT
         status: 201
         
         content-type: application/json; charset=utf-8

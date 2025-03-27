@@ -3,7 +3,7 @@ include-headers: false
 @path = "sign-in"
 POST https://localhost:50001/{{path}}
 
-SNAPSHOT:
+SNAPSHOT
 status: 200
 
 null
@@ -17,7 +17,7 @@ Content-Type: application/json; charset=utf-8
   "text": ""
 }
 
-SNAPSHOT:
+SNAPSHOT
 status: 400
 
 content-type: application/problem+json

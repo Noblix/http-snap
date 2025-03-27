@@ -10,7 +10,7 @@ Content-Type: application/json
   "details": "Hello {{name}}!"
 }
 
-SNAPSHOT:
+SNAPSHOT
 status: 200
 
 server: nginx

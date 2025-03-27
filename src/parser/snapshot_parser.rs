@@ -20,7 +20,7 @@ pub(crate) fn snapshot_parser() -> impl Parser<char, Snapshot, Error = Simple<ch
         },
     });
 
-    let snapshot = just("SNAPSHOT:")
+    let snapshot = just("SNAPSHOT")
         .ignore_then(whitespace())
         .ignore_then(status_parser())
         .then_ignore(whitespace())

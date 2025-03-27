@@ -2,7 +2,7 @@ include-headers: false
 
 POST https://localhost:50001/sign-in
 
-SNAPSHOT:
+SNAPSHOT
 status: 200
 
 null
@@ -16,7 +16,7 @@ Content-Type: application/json; charset=utf-8
   "text": "Something"
 }
 
-SNAPSHOT:
+SNAPSHOT
 status: 201
 
 content-type: application/json; charset=utf-8
@@ -34,7 +34,7 @@ transfer-encoding: chunked
 POST https://localhost:50001{{location}}/complete
 Content-Type: application/json; charset=utf-8
 
-SNAPSHOT:
+SNAPSHOT
 status: 204
 
 date: _
@@ -47,7 +47,7 @@ null
 POST https://localhost:50001{{location}}/complete
 Content-Type: application/json; charset=utf-8
 
-SNAPSHOT:
+SNAPSHOT
 status: 400
 
 content-type: application/problem+json

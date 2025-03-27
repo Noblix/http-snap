@@ -31,8 +31,8 @@ pub fn merge_snapshots_into_files(
 }
 
 fn create_content_with_snapshot(raw_text: &str, response: &SnapResponse) -> String {
-    let parts_of_file: Vec<&str> = raw_text.split("SNAPSHOT:").collect();
-    let mut file_appending = "SNAPSHOT:\nstatus: ".to_owned() + &response.status.to_string();
+    let parts_of_file: Vec<&str> = raw_text.split("SNAPSHOT").collect();
+    let mut file_appending = "SNAPSHOT\nstatus: ".to_owned() + &response.status.to_string();
 
     if response.options.include_headers {
         file_appending += "\n\n";

@@ -4,7 +4,7 @@ include-headers: false
 
 POST {{host}}/sign-in
 
-SNAPSHOT:
+SNAPSHOT
 status: 200
 
 null
@@ -14,7 +14,7 @@ null
 GET {{host}}/api/items
 Content-Type: application/json; charset=utf-8
 
-SNAPSHOT:
+SNAPSHOT
 status: 200
 
 content-type: application/json; charset=utf-8
@@ -37,7 +37,7 @@ Content-Type: application/json; charset=utf-8
   "text": "{{text}}"
 }
 
-SNAPSHOT:
+SNAPSHOT
 status: 201
 
 content-type: application/json; charset=utf-8
@@ -55,7 +55,7 @@ transfer-encoding: chunked
 GET {{host}}{{item_uri}}
 Content-Type: application/json; charset=utf-8
 
-SNAPSHOT:
+SNAPSHOT
 status: 200
 
 content-type: application/json; charset=utf-8
@@ -75,7 +75,7 @@ transfer-encoding: chunked
 POST {{host}}{{item_uri}}/complete
 Content-Type: application/json; charset=utf-8
 
-SNAPSHOT:
+SNAPSHOT
 status: 204
 
 date: _
@@ -88,7 +88,7 @@ null
 GET {{host}}{{item_uri}}
 Content-Type: application/json; charset=utf-8
 
-SNAPSHOT:
+SNAPSHOT
 status: 200
 
 content-type: application/json; charset=utf-8
@@ -108,7 +108,7 @@ transfer-encoding: chunked
 GET {{host}}/api/items
 Content-Type: application/json; charset=utf-8
 
-SNAPSHOT:
+SNAPSHOT
 status: 200
 
 content-type: application/json; charset=utf-8
@@ -135,7 +135,7 @@ transfer-encoding: chunked
 DELETE {{host}}{{item_uri}}
 Content-Type: application/json; charset=utf-8
 
-SNAPSHOT:
+SNAPSHOT
 status: 204
 
 date: _
@@ -148,7 +148,7 @@ null
 GET {{host}}/api/items
 Content-Type: application/json; charset=utf-8
 
-SNAPSHOT:
+SNAPSHOT
 status: 200
 
 content-type: application/json; charset=utf-8
@@ -165,7 +165,7 @@ transfer-encoding: chunked
 GET {{host}}{{item_uri}}
 Content-Type: application/json; charset=utf-8
 
-SNAPSHOT:
+SNAPSHOT
 status: 404
 
 content-type: application/problem+json

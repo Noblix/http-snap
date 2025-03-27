@@ -1,4 +1,5 @@
-﻿use crate::client::HttpResponse;
+﻿use std::collections::HashMap;
+use crate::client::HttpResponse;
 use crate::types::HttpFile;
 use serde_json::Value;
 use std::fs::read_to_string;
@@ -13,6 +14,7 @@ pub mod variable_store;
 
 pub async fn run(
     path_to_file: &PathBuf,
+    environment_variables: HashMap<String, types::Value>,
     should_update: bool,
     stop_on_failure: bool,
 ) -> Result<bool, Box<dyn std::error::Error>> {
@@ -20,8 +22,10 @@ pub async fn run(
     let text = raw_text.trim_start_matches("\u{feff}");
     let request_texts: Vec<&str> = text.split("###").map(|s| s.trim()).collect();
 
-    let client = client::HttpClient::new();
     let mut variable_store = variable_store::VariableStore::new();
+    variable_store.extend_variables(&environment_variables);
+
+    let client = client::HttpClient::new();
     let mut passed = true;
     for (index, request_text) in request_texts.clone().iter().enumerate() {
         let http_file = parser::parse_file(request_text).unwrap();

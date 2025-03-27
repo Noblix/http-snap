@@ -156,6 +156,12 @@ impl Serialize for Value {
     }
 }
 
+impl From<String> for Value {
+    fn from(s: String) -> Self {
+        Value::String(CompositeString::new(vec![CompositeStringPart::Literal(s)]))
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Object {
     pub members: Vec<Member>,

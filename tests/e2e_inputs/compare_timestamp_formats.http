@@ -1,4 +1,4 @@
-GET http://127.0.0.1:56789/times
+GET http://{{test_host}}/times
 Accept: application/json
 
 SNAPSHOT

@@ -94,7 +94,7 @@ impl VariableStore {
         };
     }
 
-    fn extend_variables(&mut self, new_variables: &HashMap<String, Value>) {
+    pub(crate) fn extend_variables(&mut self, new_variables: &HashMap<String, Value>) {
         for (new_var_name, new_var_value) in new_variables {
             let value = self.replace_in_value(new_var_value);
             self.variables.insert(new_var_name.clone(), value);

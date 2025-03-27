@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::cli::{expand_paths, Cli, Commands};
 use clap::Parser;
 use http_snap::run;
@@ -36,7 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for path in expanded_paths {
         total_count += 1;
         log::info!("Running {:?}", path);
-        let result = run(&path, should_update, stop_on_failure).await;
+        let result = run(&path, HashMap::new(), should_update, stop_on_failure).await;
         if result? {
             log::info!("Test {:?} passed", path);
         } else {

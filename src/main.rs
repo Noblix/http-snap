@@ -13,6 +13,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "http-snap",                  // program name (usually ignored)
         "test",
         "--path", "./http-examples/post-small-body.http",
+        "--environment",
+        "./http-examples/test_environment.txt",
     ])?;
 
     #[cfg(not(debug_assertions))]

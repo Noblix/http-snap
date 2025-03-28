@@ -1,7 +1,8 @@
-use std::collections::HashMap;
 use crate::cli::{expand_paths, Cli, Commands};
 use clap::Parser;
+use http_snap::parser::parse_environment;
 use http_snap::run;
+use std::collections::HashMap;
 
 mod cli;
 
@@ -31,13 +32,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .filter_level(log_level)
         .init();
 
+    let mut env_variables = HashMap::new();
+    if let Some(environment) = options.environment {
+        let env_content = std::fs::read_to_string(environment).unwrap();
+        env_variables = parse_environment(&env_content).unwrap();
+    }
+
     let expanded_paths = expand_paths(options.path);
     let mut total_count = 0;
     let mut failed_count = 0;
     for path in expanded_paths {
         total_count += 1;
         log::info!("Running {:?}", path);
-        let result = run(&path, HashMap::new(), should_update, stop_on_failure).await;
+        let result = run(&path, &env_variables, should_update, stop_on_failure).await;
         if result? {
             log::info!("Test {:?} passed", path);
         } else {

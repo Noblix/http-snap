@@ -16,7 +16,7 @@ async fn send_get_with_no_body() {
 
     let mut path = PathBuf::new();
     path.push("tests/e2e_inputs/send_get_with_no_body.http");
-    let result = run(&path, create_environment_variables(&server), false, true)
+    let result = run(&path, &create_environment_variables(&server), false, true)
         .await
         .unwrap();
 
@@ -43,7 +43,7 @@ async fn compare_timestamp_formats() {
 
     let mut path = PathBuf::new();
     path.push("tests/e2e_inputs/compare_timestamp_formats.http");
-    let result = run(&path, create_environment_variables(&server), false, true)
+    let result = run(&path, &create_environment_variables(&server), false, true)
         .await
         .unwrap();
 

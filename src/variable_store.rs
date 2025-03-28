@@ -129,7 +129,7 @@ impl VariableStore {
             return self.variables.get(name).unwrap().clone();
         }
 
-        panic!("Variable not found!");
+        panic!("Variable named \"{}\" was not found!", name);
     }
 
     fn replace_in_body(&self, body: &Json) -> Json {

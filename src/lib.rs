@@ -14,7 +14,7 @@ pub mod variable_store;
 
 pub async fn run(
     path_to_file: &PathBuf,
-    environment_variables: HashMap<String, types::Value>,
+    environment_variables: &HashMap<String, types::Value>,
     should_update: bool,
     stop_on_failure: bool,
 ) -> Result<bool, Box<dyn std::error::Error>> {

@@ -9,6 +9,7 @@ use crate::client::HttpResponse;
 use crate::types::*;
 use chumsky::error::Simple;
 use chumsky::Parser;
+use std::collections::HashMap;
 
 fn parser() -> impl Parser<char, HttpFile, Error = Simple<char>> {
     let base = option_parser::options_parser()
@@ -49,4 +50,10 @@ pub async fn parse_response(
         headers: response.headers.clone(),
         body,
     });
+}
+
+pub fn parse_environment(input: &str) -> Result<HashMap<String, Value>, Vec<Simple<char>>> {
+    return variable_parser::variables_parser(false)
+        .map(|vars| vars)
+        .parse(input);
 }

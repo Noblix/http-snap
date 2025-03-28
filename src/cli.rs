@@ -22,7 +22,11 @@ pub(crate)struct GlobalOptions {
 
     /// Enable verbose output
     #[arg(short, long)]
-    pub(crate)verbose: bool,
+    pub(crate) verbose: bool,
+
+    /// File containing environment variables
+    #[arg(short, long)]
+    pub(crate) environment: Option<PathBuf>,
 }
 
 /// Enum of subcommands (test and update)

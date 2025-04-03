@@ -1,30 +1,33 @@
 ﻿use crate::parser::body_parser::{element_parser, value_parser};
-use crate::types::{CompositeStringPart, Value};
+use crate::types::{CompositeStringPart, Generator, Variable};
 use chumsky::error::Simple;
 use chumsky::prelude::*;
 use chumsky::text::{whitespace, Character};
 use chumsky::Parser;
 use std::collections::HashMap;
 
-pub(crate) fn variables_parser(comparison: bool) -> impl Parser<char, HashMap<String, Value>, Error = Simple<char>>
-{
+pub(crate) fn variables_parser(
+    comparison: bool,
+) -> impl Parser<char, HashMap<String, Variable>, Error = Simple<char>> {
     return just('@')
         .ignore_then(text::ident())
         .then_ignore(filter(|c: &char| c.is_inline_whitespace()).repeated())
         .then_ignore(just('='))
         .then_ignore(filter(|c: &char| c.is_inline_whitespace()).repeated())
-        .then(value_parser(element_parser(comparison)))
+        .then(choice((
+            value_parser(element_parser(comparison)).map(|val| Variable::Value(val)),
+            generator_parser().map(|generator| Variable::Generator(generator)),
+        )))
         .padded()
         .repeated()
-        .map(|vars: Vec<(String, Value)>| {
+        .map(|vars: Vec<(String, Variable)>| {
             vars.into_iter()
                 .map(|(name, value)| (name, value))
-                .collect::<HashMap<String, Value>>()
+                .collect::<HashMap<String, Variable>>()
         });
 }
 
-pub(crate) fn variable_store_parser(
-) -> impl Parser<char, String, Error = Simple<char>> {
+pub(crate) fn variable_store_parser() -> impl Parser<char, String, Error = Simple<char>> {
     return just("->")
         .ignore_then(whitespace())
         .ignore_then(just('@'))
@@ -46,4 +49,8 @@ fn variable_reference_parser() -> impl Parser<char, String, Error = Simple<char>
         .ignore_then(text::ident())
         .then_ignore(just("}}"))
         .map(|name| name);
+}
+
+fn generator_parser() -> impl Parser<char, Generator, Error = Simple<char>> {
+    return just("gen(guid)").to(Generator::Guid);
 }

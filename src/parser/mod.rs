@@ -52,7 +52,7 @@ pub async fn parse_response(
     });
 }
 
-pub fn parse_environment(input: &str) -> Result<HashMap<String, Value>, Vec<Simple<char>>> {
+pub fn parse_environment(input: &str) -> Result<HashMap<String, Variable>, Vec<Simple<char>>> {
     return variable_parser::variables_parser(false)
         .map(|vars| vars)
         .parse(input);

@@ -1,9 +1,10 @@
 ﻿use crate::types::{
-    Array, CompositeString, CompositeStringPart, Element, Header, HttpFile, Json, Member, Object,
-    SnapResponse, Snapshot, Value,
+    Array, CompositeString, CompositeStringPart, Element, Header, HttpFile, Json,
+    Member, Object, SnapResponse, Snapshot, Value, Variable,
 };
 use reqwest::header::HeaderMap;
 use std::collections::HashMap;
+use crate::variable_generator;
 
 pub(crate) struct VariableStore {
     pub(crate) variables: HashMap<String, Value>,
@@ -78,14 +79,18 @@ impl VariableStore {
     }
 
     pub(crate) fn replace_variables(&mut self, input: HttpFile) -> HttpFile {
-        self.extend_variables(&input.variables);
+        let variables = variable_generator::generate_variables(input.variables);
+        self.extend_variables(&variables);
         let url_replaced = self.replace_in_composite_string(&input.url);
         let header_replaced = self.replace_in_headers(&input.headers);
         let body_replaced = self.replace_in_body(&input.body);
         let snapshot_replaced = self.replace_in_snapshot(input.snapshot);
         return HttpFile {
             options: input.options,
-            variables: input.variables,
+            variables: variables
+                .into_iter()
+                .map(|(k, v)| (k, Variable::Value(v)))
+                .collect(),
             verb: input.verb,
             url: url_replaced,
             headers: header_replaced,
@@ -100,7 +105,7 @@ impl VariableStore {
             self.variables.insert(new_var_name.clone(), value);
         }
     }
-    
+
     fn replace_in_headers(&mut self, headers: &Vec<Header>) -> Vec<Header> {
         let mut result = Vec::new();
         for header in headers {

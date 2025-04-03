@@ -7,12 +7,23 @@ use std::fmt::{Display, Formatter};
 #[derive(Debug)]
 pub struct HttpFile {
     pub options: SnapOptions,
-    pub variables: HashMap<String, Value>,
+    pub variables: HashMap<String, Variable>,
     pub verb: HttpVerb,
     pub url: CompositeString,
     pub headers: Vec<Header>,
     pub body: Json,
     pub snapshot: Snapshot,
+}
+
+#[derive(Debug)]
+pub enum Variable {
+    Value(Value),
+    Generator(Generator)
+}
+
+#[derive(Debug, Clone)]
+pub enum Generator {
+    Guid,
 }
 
 #[derive(Debug)]

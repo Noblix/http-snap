@@ -2,6 +2,7 @@ use crate::cli::{expand_paths, Cli, Commands};
 use clap::Parser;
 use http_snap::parser::parse_environment;
 use http_snap::run;
+use http_snap::variable_generator;
 use std::collections::HashMap;
 
 mod cli;
@@ -37,7 +38,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut env_variables = HashMap::new();
     if let Some(environment) = options.environment {
         let env_content = std::fs::read_to_string(environment).unwrap();
-        env_variables = parse_environment(&env_content).unwrap();
+        let parsed_env_variables = parse_environment(&env_content).unwrap();
+        env_variables = variable_generator::generate_variables(parsed_env_variables);
     }
 
     let expanded_paths = expand_paths(options.path);

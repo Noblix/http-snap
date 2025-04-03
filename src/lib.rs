@@ -11,6 +11,7 @@ pub mod merger;
 pub mod parser;
 pub mod types;
 pub mod variable_store;
+pub mod variable_generator;
 
 pub async fn run(
     path_to_file: &PathBuf,

@@ -90,3 +90,33 @@ async fn compare_guid_formats() {
 
     assert_eq!(result, true);
 }
+
+#[tokio::test]
+async fn generate_guid() {
+    common::init_logger();
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path_regex(r"^/ids/.+$"))
+        .respond_with(|req: &Request| {
+            let id = req.url.path().rsplit('/').next().unwrap_or("unknown");
+            ResponseTemplate::new(200).set_body_json(json!({
+                "id": id,
+                "name": "Echo"
+            }))
+        })
+        .mount(&server)
+        .await;
+
+    let mut path = PathBuf::new();
+    path.push("tests/e2e_inputs/generate_guid.http");
+    let result = run(
+        &path,
+        &common::create_environment_variables(&server),
+        false,
+        true,
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(result, true);
+}

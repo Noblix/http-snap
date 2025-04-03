@@ -1,11 +1,13 @@
 ﻿use http_snap::run;
-use http_snap::types::Value;
 use serde_json::json;
-use std::collections::HashMap;
 use std::path::PathBuf;
+use uuid::Uuid;
+
+mod common;
 
 #[tokio::test]
 async fn send_get_with_no_body() {
+    common::init_logger();
     let mut server = mockito::Server::new_async().await;
     server
         .mock("GET", "/no-body")
@@ -16,15 +18,21 @@ async fn send_get_with_no_body() {
 
     let mut path = PathBuf::new();
     path.push("tests/e2e_inputs/send_get_with_no_body.http");
-    let result = run(&path, &create_environment_variables(&server), false, true)
-        .await
-        .unwrap();
+    let result = run(
+        &path,
+        &common::create_environment_variables(&server),
+        false,
+        true,
+    )
+    .await
+    .unwrap();
 
     assert_eq!(result, true);
 }
 
 #[tokio::test]
 async fn compare_timestamp_formats() {
+    common::init_logger();
     let mut server = mockito::Server::new_async().await;
     server
         .mock("GET", "/times")
@@ -43,16 +51,41 @@ async fn compare_timestamp_formats() {
 
     let mut path = PathBuf::new();
     path.push("tests/e2e_inputs/compare_timestamp_formats.http");
-    let result = run(&path, &create_environment_variables(&server), false, true)
+    let result = run(&path, &common::create_environment_variables(&server), false, true)
         .await
         .unwrap();
 
     assert_eq!(result, true);
 }
 
-fn create_environment_variables(server: &mockito::Server) -> HashMap<String, Value> {
-    return HashMap::from([(
-        "test_host".to_string(),
-        Value::from(server.host_with_port()),
-    )]);
+#[tokio::test]
+async fn compare_guid_formats() {
+    common::init_logger();
+    let mut server = mockito::Server::new_async().await;
+    server
+        .mock("GET", "/dishes/favorite")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_header("correlation-id", &Uuid::new_v4().to_string())
+        .with_body(
+            json!({
+                "id": &Uuid::new_v4().to_string(),
+                "name": "Beef Wellington"
+            })
+            .to_string(),
+        )
+        .create();
+
+    let mut path = PathBuf::new();
+    path.push("tests/e2e_inputs/compare_guid_formats.http");
+    let result = run(
+        &path,
+        &common::create_environment_variables(&server),
+        false,
+        true,
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(result, true);
 }

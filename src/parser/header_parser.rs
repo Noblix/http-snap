@@ -1,5 +1,7 @@
 ﻿use crate::parser::body_parser;
-use crate::parser::snapshot_parser::{ignore_comparison_parser, timestamp_format_parser};
+use crate::parser::snapshot_parser::{
+    guid_format_parser, ignore_comparison_parser, timestamp_format_parser,
+};
 use crate::parser::variable_parser::variable_store_parser;
 use crate::types::*;
 use chumsky::error::Simple;
@@ -43,10 +45,12 @@ fn headers_compare_parser() -> Box<dyn Parser<char, Vec<Header>, Error = Simple<
             .then_ignore(just(':'))
             .then_ignore(repeated_spaces())
             .then(choice((
-                timestamp_format_parser()
-                    .map(|pattern| (CompositeString::new(Vec::new()), Some(pattern))),
-                ignore_comparison_parser()
-                    .map(|_| (CompositeString::new(Vec::new()), Some(Comparison::Ignore))),
+                choice((
+                    timestamp_format_parser(),
+                    guid_format_parser(),
+                    ignore_comparison_parser(),
+                ))
+                .map(|comparison| (CompositeString::new(Vec::new()), Some(comparison))),
                 header_value().map(|value| (value, Some(Comparison::Exact))),
             )))
             .then(variable_store_parser().or_not())

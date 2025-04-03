@@ -1,7 +1,11 @@
-﻿use crate::types::{Array, Comparison, CompositeString, Element, Header, Json, Number, Object, SnapResponse, Snapshot, Value};
+﻿use crate::types::{
+    Array, Comparison, CompositeString, Element, Header, Json, Number, Object, SnapResponse,
+    Snapshot, Value,
+};
 use chrono::{DateTime, NaiveDateTime};
 use reqwest::header::{HeaderMap, HeaderValue};
 use std::collections::HashMap;
+use uuid::Uuid;
 
 pub fn compare_to_snapshot(snapshot: &Snapshot, response: &SnapResponse) -> bool {
     let status_matches = match_status(&snapshot.status, &response.status);
@@ -62,6 +66,15 @@ fn match_headers(snapshot_headers: &Vec<Header>, response_header: &HeaderMap) ->
                     false
                 }
             }
+            Some(Comparison::Guid) => {
+                let response_value_option = response_header.get(&snapshot_header.name);
+                if let Some(response_value) = response_value_option {
+                    let value = response_value.to_str().unwrap();
+                    compare_guid_format(value)
+                } else {
+                    false
+                }
+            }
             _ => false,
         };
 
@@ -87,18 +100,31 @@ fn match_body_element(expected: &Element, actual: &Element) -> bool {
     return match &expected.comparison {
         Some(Comparison::Ignore) => true,
         Some(Comparison::TimestampFormat(pattern)) => match_body_timestamp(&pattern, &actual.value),
+        Some(Comparison::Guid) => match_body_guid(&actual.value),
         _ => match_body_value(&expected.value, &actual.value), // This is the same as exact
     };
 }
 
 fn match_body_timestamp(pattern: &CompositeString, actual: &Value) -> bool {
-    return match actual { 
-        Value::String(actual_string) => compare_timestamp_format(pattern, &actual_string.to_string()),
+    return match actual {
+        Value::String(actual_string) => {
+            compare_timestamp_format(pattern, &actual_string.to_string())
+        }
         _ => {
             log::error!("Value {:?} is not a string", actual);
             false
         }
-    }
+    };
+}
+
+fn match_body_guid(actual: &Value) -> bool {
+    return match actual {
+        Value::String(actual_string) => compare_guid_format(&actual_string.to_string()),
+        _ => {
+            log::error!("Value {:?} is not a string", actual);
+            false
+        }
+    };
 }
 
 fn match_body_value(expected: &Value, actual: &Value) -> bool {
@@ -192,7 +218,7 @@ fn log_header_mismatch(snapshot_header: &Header, response_header: Option<&Header
         Some(Comparison::Exact) => {
             log::error!(
                 "Expected: {:?} but got {:?}",
-                snapshot_header.value,
+                snapshot_header.value.to_string(),
                 response_header.unwrap()
             );
         }
@@ -202,6 +228,9 @@ fn log_header_mismatch(snapshot_header: &Header, response_header: Option<&Header
                 response_header.unwrap(),
                 pattern.to_string()
             );
+        }
+        Some(Comparison::Guid) => {
+            log::error!("Expected a guid but got {:?}", response_header.unwrap());
         }
         _ => panic!(
             "Comparison type {:?} not supported for headers",
@@ -216,5 +245,9 @@ fn compare_timestamp_format(pattern: &CompositeString, value: &str) -> bool {
         true
     } else {
         NaiveDateTime::parse_from_str(&value, &pattern).is_ok()
-    }
+    };
+}
+
+fn compare_guid_format(value: &str) -> bool {
+    return Uuid::try_parse(value).is_ok();
 }

@@ -26,7 +26,8 @@ pub struct Snapshot {
 pub enum Comparison {
     Exact,
     Ignore,
-    TimestampFormat(CompositeString)
+    TimestampFormat(CompositeString),
+    Guid,
 }
 
 #[derive(Debug)]

@@ -41,7 +41,7 @@ pub(crate) fn ignore_comparison_parser() -> impl Parser<char, Comparison, Error 
     return whitespace()
         .then(just("_"))
         .then_ignore(whitespace())
-        .map(|_| Comparison::Ignore);
+        .to(Comparison::Ignore);
 }
 
 pub(crate) fn timestamp_format_parser() -> impl Parser<char, Comparison, Error = Simple<char>> {
@@ -49,6 +49,13 @@ pub(crate) fn timestamp_format_parser() -> impl Parser<char, Comparison, Error =
         .then(just("timestamp"))
         .ignore_then(characters_parser().delimited_by(just("(\""), just("\")")))
         .map(|pattern| Comparison::TimestampFormat(pattern));
+}
+
+pub(crate) fn guid_format_parser() -> impl Parser<char, Comparison, Error = Simple<char>> {
+    return whitespace()
+        .then(just("guid()"))
+        .then_ignore(whitespace())
+        .to(Comparison::Guid);
 }
 
 fn status_parser() -> impl Parser<char, Number, Error = Simple<char>> {

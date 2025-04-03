@@ -1,4 +1,6 @@
-﻿use crate::parser::snapshot_parser::{ignore_comparison_parser, timestamp_format_parser};
+﻿use crate::parser::snapshot_parser::{
+    guid_format_parser, ignore_comparison_parser, timestamp_format_parser,
+};
 use crate::parser::variable_parser::{
     variable_name_parser, variable_name_string_parser, variable_store_parser,
 };
@@ -132,20 +134,17 @@ fn element_compare_parser() -> Rc<dyn Parser<char, Element, Error = Simple<char>
     return Rc::new(recursive(|element_compare_parser| {
         whitespace()
             .ignore_then(choice((
-                ignore_comparison_parser()
-                    .then(variable_store_parser().or_not())
-                    .map(|(_, variable_store)| Element {
-                        value: Value::Null(),
-                        variable_store,
-                        comparison: Some(Comparison::Ignore),
-                    }),
-                timestamp_format_parser()
-                    .then(variable_store_parser().or_not())
-                    .map(|(comparison, variable_store)| Element {
-                        value: Value::Null(),
-                        variable_store,
-                        comparison: Some(comparison),
-                    }),
+                choice((
+                    ignore_comparison_parser(),
+                    timestamp_format_parser(),
+                    guid_format_parser(),
+                ))
+                .then(variable_store_parser().or_not())
+                .map(|(comparison, variable_store)| Element {
+                    value: Value::Null(),
+                    variable_store,
+                    comparison: Some(comparison),
+                }),
                 value_parser(element_compare_parser)
                     .then(variable_store_parser().or_not())
                     .map(|(value, variable_store)| Element {

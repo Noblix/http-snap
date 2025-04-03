@@ -219,7 +219,7 @@ fn log_header_mismatch(snapshot_header: &Header, response_header: Option<&Header
             log::error!(
                 "Expected: {:?} but got {:?}",
                 snapshot_header.value.to_string(),
-                response_header.unwrap()
+                response_header.unwrap_or(&HeaderValue::from_static(""))
             );
         }
         Some(Comparison::TimestampFormat(pattern)) => {

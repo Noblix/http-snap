@@ -1,15 +1,16 @@
-GET {{test_host}}/dishes/favorite
+@new_id = gen(guid)
+
+POST {{test_host}}/ids/{{new_id}}
 Accept: application/json
 
 SNAPSHOT
 status: 200
 
 content-type: application/json
-correlation-id: guid()
-content-length: 70
+content-length: 59
 date: _
 
 {
   "id": guid(),
-  "name": "Beef Wellington"
+  "name": "Echo"
 }

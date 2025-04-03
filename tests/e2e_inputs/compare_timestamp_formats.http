@@ -1,10 +1,9 @@
-GET http://{{test_host}}/times
+GET {{test_host}}/times
 Accept: application/json
 
 SNAPSHOT
 status: 200
 
-connection: close
 content-type: application/json
 content-length: 167
 date: timestamp("%a, %d %b %Y %H:%M:%S %Z")

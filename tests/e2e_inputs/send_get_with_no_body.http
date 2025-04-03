@@ -1,10 +1,9 @@
-GET http://{{test_host}}/no-body
+GET {{test_host}}/no-body
 Accept: application/json
 
 SNAPSHOT
 status: 200
 
-connection: close
 content-type: application/json
 content-length: 17
 date: _

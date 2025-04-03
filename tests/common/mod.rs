@@ -14,9 +14,9 @@ pub fn init_logger() {
     });
 }
 
-pub fn create_environment_variables(server: &mockito::Server) -> HashMap<String, Value> {
+pub fn create_environment_variables(server: &wiremock::MockServer) -> HashMap<String, Value> {
     return HashMap::from([(
         "test_host".to_string(),
-        Value::from(server.host_with_port()),
+        Value::from(server.uri()),
     )]);
 }

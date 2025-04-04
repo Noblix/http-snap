@@ -1,5 +1,5 @@
 ﻿use crate::client::HttpResponse;
-use crate::types::{HttpFile, SnapResponse};
+use crate::types::{ExecuteOptions, HttpFile, Mode, UpdateOptions};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fs::read_to_string;
@@ -17,8 +17,7 @@ pub mod variable_store;
 pub async fn run(
     path_to_file: &PathBuf,
     environment_variables: &HashMap<String, types::Value>,
-    should_update: bool,
-    stop_on_failure: bool,
+    execute_options: &ExecuteOptions,
 ) -> Result<bool, Box<dyn std::error::Error>> {
     let raw_text = read_to_string(path_to_file).unwrap();
     let text = raw_text.trim_start_matches("\u{feff}");
@@ -28,6 +27,7 @@ pub async fn run(
     variable_store.extend_variables(&environment_variables);
 
     let client = client::HttpClient::new();
+    let replacer = detector::Replacer::new(&execute_options.update_options);
     let mut passed = true;
     let mut updated_snapshots = Vec::new();
     for (index, request_text) in request_texts.clone().iter().enumerate() {
@@ -52,23 +52,24 @@ pub async fn run(
         } else {
             passed = false;
 
-            let updated_snapshot = SnapResponse {
-                options: parsed_response.options,
-                status: parsed_response.status,
-                headers: detector::detect_in_headers(parsed_response.headers),
-                body: detector::detect_in_json(parsed_response.body),
-            };
+            let updated_snapshot = replacer.detect_types(parsed_response);
             updated_snapshots.push((index, updated_snapshot));
 
             log::error!("Snapshot {0} did NOT match", index + 1);
 
-            if stop_on_failure {
+            if matches!(
+                execute_options.update_options,
+                Some(UpdateOptions {
+                    stop_on_failure: true,
+                    ..
+                })
+            ) {
                 break;
             }
         }
     }
 
-    if should_update {
+    if execute_options.mode == Mode::Update {
         merger::merge_snapshots_into_files(path_to_file, &request_texts, updated_snapshots)?;
     }
 

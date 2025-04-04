@@ -1,4 +1,4 @@
-﻿use clap::{Args, Parser, Subcommand};
+﻿use clap::{Args, Parser, Subcommand, ValueEnum};
 use glob::glob;
 use std::path::PathBuf;
 
@@ -52,7 +52,18 @@ pub(crate) enum Commands {
 pub struct UpdateOptions {
     /// Continue updating tests in spite of response mismatches
     #[arg(long = "continue-on-failure", action = clap::ArgAction::SetFalse, default_value_t = true)]
-    pub(crate) stop_in_failure: bool,
+    pub(crate) stop_on_failure: bool,
+
+    /// Choose which detectors to run. Can be specified multiple times.
+    #[arg(long, value_enum, value_delimiter = ',', num_args = 1..)]
+    pub(crate) detectors: Vec<Detector>
+}
+
+#[derive(Debug, ValueEnum, Clone, PartialEq, Eq)]
+pub enum Detector {
+    All,
+    Timestamp,
+    Guid,
 }
 
 pub(crate) fn expand_paths(path: PathBuf) -> Vec<PathBuf> {

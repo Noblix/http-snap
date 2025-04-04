@@ -1,7 +1,50 @@
 ﻿use serde::ser::{SerializeMap, SerializeSeq, Serializer};
 use serde::Serialize;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
+
+#[derive(Debug)]
+pub struct ExecuteOptions {
+    pub mode: Mode,
+    pub update_options: Option<UpdateOptions>,
+}
+
+impl ExecuteOptions {
+    pub fn new_test() -> Self {
+        return Self {
+            mode: Mode::Test,
+            update_options: None
+        };
+    }
+
+    pub fn new_update(stop_on_failure: bool, detectors: &[Detector]) -> Self {
+        return Self {
+            mode: Mode::Update,
+            update_options: Some(UpdateOptions{
+                stop_on_failure,
+                detectors: detectors.iter().cloned().collect()
+            })
+        };
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum Mode {
+    Test,
+    Update
+}
+
+#[derive(Debug)]
+pub struct UpdateOptions {
+    pub stop_on_failure: bool,
+    pub detectors: HashSet<Detector>
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum Detector {
+    Timestamp,
+    Guid
+}
 
 #[derive(Debug)]
 pub struct HttpFile {

@@ -7,7 +7,7 @@ status: 200
 content-length: 45
 content-type: application/json
 correlation-id: *guid*
-date: _
+date: *timestamp("%a, %d %b %Y %H:%M:%S %Z")*
 
 {
   "id": *guid*

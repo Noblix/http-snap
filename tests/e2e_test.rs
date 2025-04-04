@@ -1,4 +1,5 @@
 ﻿use http_snap::run;
+use http_snap::types::{Detector, ExecuteOptions};
 use serde_json::json;
 use std::path::PathBuf;
 use uuid::Uuid;
@@ -22,8 +23,7 @@ async fn send_get_with_no_body() {
     let result = run(
         &path,
         &common::create_environment_variables(&server),
-        false,
-        true,
+        &ExecuteOptions::new_test(),
     )
     .await
     .unwrap();
@@ -51,8 +51,7 @@ async fn compare_timestamp_formats() {
     let result = run(
         &path,
         &common::create_environment_variables(&server),
-        false,
-        true,
+        &ExecuteOptions::new_test(),
     )
     .await
     .unwrap();
@@ -80,11 +79,10 @@ async fn detect_timestamp_formats() {
     let result = run(
         &path,
         &common::create_environment_variables(&server),
-        true,
-        true,
+        &ExecuteOptions::new_update(true, &[Detector::Timestamp]),
     )
-        .await
-        .unwrap();
+    .await
+    .unwrap();
 
     assert_eq!(result, true);
 }
@@ -111,8 +109,7 @@ async fn compare_guid_formats() {
     let result = run(
         &path,
         &common::create_environment_variables(&server),
-        false,
-        true,
+        &ExecuteOptions::new_test(),
     )
     .await
     .unwrap();
@@ -141,8 +138,7 @@ async fn generate_guid() {
     let result = run(
         &path,
         &common::create_environment_variables(&server),
-        false,
-        true,
+        &ExecuteOptions::new_test(),
     )
     .await
     .unwrap();
@@ -151,7 +147,7 @@ async fn generate_guid() {
 }
 
 #[tokio::test]
-async fn detect_guid() {
+async fn detect_guid_and_timestamp() {
     common::init_logger();
     let server = MockServer::start().await;
     Mock::given(method("GET"))
@@ -167,12 +163,11 @@ async fn detect_guid() {
         .await;
 
     let mut path = PathBuf::new();
-    path.push("tests/e2e_inputs/detect_guid.http");
+    path.push("tests/e2e_inputs/detect_guid_and_timestamp.http");
     let result = run(
         &path,
         &common::create_environment_variables(&server),
-        true,
-        true,
+        &ExecuteOptions::new_update(true, &[Detector::Guid, Detector::Timestamp]),
     )
     .await
     .unwrap();
@@ -243,8 +238,7 @@ async fn writing_snapshot() {
     let result = run(
         &path,
         &common::create_environment_variables(&server),
-        true,
-        true,
+        &ExecuteOptions::new_update(true, &[]),
     )
     .await
     .unwrap();

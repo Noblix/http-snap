@@ -5,11 +5,11 @@ SNAPSHOT
 status: 200
 
 content-type: application/json
-correlation-id: guid()
+correlation-id: *guid*
 content-length: 70
 date: _
 
 {
-  "id": guid(),
+  "id": *guid*,
   "name": "Beef Wellington"
 }

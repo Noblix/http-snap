@@ -11,6 +11,6 @@ content-length: 59
 date: _
 
 {
-  "id": guid(),
+  "id": *guid*,
   "name": "Echo"
 }

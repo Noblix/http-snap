@@ -19,6 +19,6 @@ transfer-encoding: chunked
 x-request-id: _
 x-token-id: _
 cache-control: no-cache, private
-date: timestamp("%a, %d %b %Y %H:%M:%S GMT")
+date: *timestamp("%a, %d %b %Y %H:%M:%S GMT")*
 
 null

@@ -73,6 +73,12 @@ impl CompositeString {
     }
 }
 
+impl From<String> for CompositeString {
+    fn from(s: String) -> Self {
+        CompositeString::new(vec![CompositeStringPart::Literal(s)])
+    }
+}
+
 impl Display for CompositeString {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let str = self
@@ -169,7 +175,7 @@ impl Serialize for Value {
 
 impl From<String> for Value {
     fn from(s: String) -> Self {
-        Value::String(CompositeString::new(vec![CompositeStringPart::Literal(s)]))
+        Value::String(CompositeString::from(s))
     }
 }
 

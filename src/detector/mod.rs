@@ -1,7 +1,8 @@
-﻿use std::collections::HashMap;
-use crate::types::{Array, Element, Header, Json, Member, Object, Value};
+﻿use crate::types::{Array, Element, Header, Json, Member, Object, Value};
+use std::collections::HashMap;
 
 mod guid_detector;
+mod timestamp_detector;
 
 pub(crate) fn detect_in_headers(headers: HashMap<String, Header>) -> HashMap<String, Header> {
     let mut updated_headers = HashMap::new();
@@ -15,7 +16,11 @@ fn detect_in_header(header: &Header) -> Header {
     return if let Some(detected) = guid_detector::detect_in_header(header) {
         detected
     } else {
-        header.clone()
+        if let Some(detected) = timestamp_detector::detect_in_header(header) {
+            detected
+        } else {
+            header.clone()
+        }
     };
 }
 
@@ -27,10 +32,12 @@ pub fn detect_in_json(json: Json) -> Json {
 
 fn detect_in_element(element: Element) -> Element {
     let guid_element = guid_detector::detect_in_element(&element);
-    return guid_element.unwrap_or_else(|| Element {
-        value: detect_in_value(element.value),
-        variable_store: element.variable_store,
-        comparison: element.comparison,
+    return guid_element.unwrap_or_else(|| {
+        timestamp_detector::detect_in_element(&element).unwrap_or_else(|| Element {
+            value: detect_in_value(element.value),
+            variable_store: element.variable_store,
+            comparison: element.comparison,
+        })
     });
 }
 

@@ -61,6 +61,35 @@ async fn compare_timestamp_formats() {
 }
 
 #[tokio::test]
+async fn detect_timestamp_formats() {
+    common::init_logger();
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/times"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "RFC-2822": "Tue, 25 Mar 2025 14:54:09 GMT",
+            "ISO-8601-Basic": "20250325T144509Z",
+            "ISO-8601-Extended": "2025-03-25T14:54:09Z",
+            "12‑Hour-Format": "03/25/2025 02:54:09 PM",
+        })))
+        .mount(&server)
+        .await;
+
+    let mut path = PathBuf::new();
+    path.push("tests/e2e_inputs/detect_timestamp_formats.http");
+    let result = run(
+        &path,
+        &common::create_environment_variables(&server),
+        true,
+        true,
+    )
+        .await
+        .unwrap();
+
+    assert_eq!(result, true);
+}
+
+#[tokio::test]
 async fn compare_guid_formats() {
     common::init_logger();
     let server = MockServer::start().await;

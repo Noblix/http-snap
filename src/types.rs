@@ -1,5 +1,4 @@
-﻿use reqwest::header::HeaderMap;
-use serde::ser::{SerializeMap, SerializeSeq, Serializer};
+﻿use serde::ser::{SerializeMap, SerializeSeq, Serializer};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
@@ -45,7 +44,7 @@ pub enum Comparison {
 pub struct SnapResponse {
     pub options: SnapOptions,
     pub status: u16,
-    pub headers: HeaderMap,
+    pub headers: HashMap<String, Header>,
     pub body: Json,
 }
 
@@ -102,7 +101,7 @@ impl Display for CompositeStringPart {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Header {
     pub name: String,
     pub value: CompositeString,

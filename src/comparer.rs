@@ -1,10 +1,9 @@
-﻿use crate::types::{
+﻿use std::collections::HashMap;
+use crate::types::{
     Array, Comparison, CompositeString, Element, Header, Json, Number, Object, SnapResponse,
     Snapshot, Value,
 };
 use chrono::{DateTime, NaiveDateTime};
-use reqwest::header::{HeaderMap, HeaderValue};
-use std::collections::HashMap;
 use uuid::Uuid;
 
 pub fn compare_to_snapshot(snapshot: &Snapshot, response: &SnapResponse) -> bool {
@@ -42,7 +41,10 @@ fn match_status(snapshot_status: &Number, response_status: &u16) -> bool {
     };
 }
 
-fn match_headers(snapshot_headers: &Vec<Header>, response_header: &HeaderMap) -> bool {
+fn match_headers(
+    snapshot_headers: &Vec<Header>,
+    response_header: &HashMap<String, Header>,
+) -> bool {
     for snapshot_header in snapshot_headers {
         if matches!(snapshot_header.comparison, Some(Comparison::Ignore)) {
             continue;
@@ -52,7 +54,7 @@ fn match_headers(snapshot_headers: &Vec<Header>, response_header: &HeaderMap) ->
             Some(Comparison::Exact) => {
                 let response_value_option = response_header.get(&snapshot_header.name);
                 if let Some(response_value) = response_value_option {
-                    response_value.to_str().unwrap() == snapshot_header.value.to_string()
+                    response_value.value.to_string() == snapshot_header.value.to_string()
                 } else {
                     false
                 }
@@ -60,8 +62,8 @@ fn match_headers(snapshot_headers: &Vec<Header>, response_header: &HeaderMap) ->
             Some(Comparison::TimestampFormat(pattern)) => {
                 let response_value_option = response_header.get(&snapshot_header.name);
                 if let Some(response_value) = response_value_option {
-                    let value = response_value.to_str().unwrap();
-                    compare_timestamp_format(pattern, value)
+                    let value = response_value.value.to_string();
+                    compare_timestamp_format(pattern, &value)
                 } else {
                     false
                 }
@@ -69,8 +71,8 @@ fn match_headers(snapshot_headers: &Vec<Header>, response_header: &HeaderMap) ->
             Some(Comparison::Guid) => {
                 let response_value_option = response_header.get(&snapshot_header.name);
                 if let Some(response_value) = response_value_option {
-                    let value = response_value.to_str().unwrap();
-                    compare_guid_format(value)
+                    let value = response_value.value.to_string();
+                    compare_guid_format(&value)
                 } else {
                     false
                 }
@@ -209,28 +211,33 @@ fn match_body_number(expected: &Number, actual: &Number) -> bool {
     };
 }
 
-fn log_header_mismatch(snapshot_header: &Header, response_header: Option<&HeaderValue>) {
+fn log_header_mismatch(snapshot_header: &Header, response_header: Option<&Header>) {
     log::error!(
         "Header named: {:?} did NOT match snapshot",
         snapshot_header.name
     );
+
+    let response_value = response_header
+        .map(|header| header.value.to_string())
+        .unwrap_or_default();
+
     match &snapshot_header.comparison {
         Some(Comparison::Exact) => {
             log::error!(
                 "Expected: {:?} but got {:?}",
                 snapshot_header.value.to_string(),
-                response_header.unwrap_or(&HeaderValue::from_static(""))
+                response_value
             );
         }
         Some(Comparison::TimestampFormat(pattern)) => {
             log::error!(
                 "Timestamp {:?} does not match pattern {}",
-                response_header.unwrap(),
+                response_value,
                 pattern.to_string()
             );
         }
         Some(Comparison::Guid) => {
-            log::error!("Expected a guid but got {:?}", response_header.unwrap());
+            log::error!("Expected a guid but got {:?}", response_value);
         }
         _ => panic!(
             "Comparison type {:?} not supported for headers",

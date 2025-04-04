@@ -1,17 +1,18 @@
-﻿use std::collections::HashMap;
-use crate::client::HttpResponse;
-use crate::types::HttpFile;
+﻿use crate::client::HttpResponse;
+use crate::types::{HttpFile, SnapResponse};
 use serde_json::Value;
+use std::collections::HashMap;
 use std::fs::read_to_string;
 use std::path::PathBuf;
 
 pub mod client;
 pub mod comparer;
+pub mod detector;
 pub mod merger;
 pub mod parser;
 pub mod types;
-pub mod variable_store;
 pub mod variable_generator;
+pub mod variable_store;
 
 pub async fn run(
     path_to_file: &PathBuf,
@@ -28,6 +29,7 @@ pub async fn run(
 
     let client = client::HttpClient::new();
     let mut passed = true;
+    let mut updated_snapshots = Vec::new();
     for (index, request_text) in request_texts.clone().iter().enumerate() {
         let http_file = parser::parse_file(request_text).unwrap();
         let http_file_without_variables = variable_store.replace_variables(http_file);
@@ -50,21 +52,24 @@ pub async fn run(
         } else {
             passed = false;
 
-            if should_update {
-                merger::merge_snapshots_into_files(
-                    path_to_file,
-                    &request_texts,
-                    index,
-                    parsed_response,
-                )?;
-            }
+            let updated_snapshot = SnapResponse {
+                options: parsed_response.options,
+                status: parsed_response.status,
+                headers: detector::detect_in_headers(parsed_response.headers),
+                body: detector::detect_in_json(parsed_response.body),
+            };
+            updated_snapshots.push((index, updated_snapshot));
 
             log::error!("Snapshot {0} did NOT match", index + 1);
-            
+
             if stop_on_failure {
                 break;
             }
         }
+    }
+
+    if should_update {
+        merger::merge_snapshots_into_files(path_to_file, &request_texts, updated_snapshots)?;
     }
 
     return Ok(passed);

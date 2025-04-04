@@ -120,3 +120,105 @@ async fn generate_guid() {
 
     assert_eq!(result, true);
 }
+
+#[tokio::test]
+async fn detect_guid() {
+    common::init_logger();
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path_regex("/guid"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .insert_header("correlation-id", Uuid::new_v4().to_string().as_str())
+                .set_body_json(json!({
+                    "id": Uuid::new_v4().to_string()
+                })),
+        )
+        .mount(&server)
+        .await;
+
+    let mut path = PathBuf::new();
+    path.push("tests/e2e_inputs/detect_guid.http");
+    let result = run(
+        &path,
+        &common::create_environment_variables(&server),
+        true,
+        true,
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(result, true);
+}
+
+#[tokio::test]
+async fn writing_snapshot() {
+    common::init_logger();
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/complex"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+          "name": "Test Data",
+          "id": 123,
+          "active": true,
+          "nestedObject": {
+            "key1": "value1",
+            "key2": {
+              "subKey": 42,
+              "subArray": [
+                1,
+                2,
+                3,
+                {
+                  "deep": "value"
+                }
+              ]
+            },
+            "emptyObject": {}
+          },
+          "arrayOfObjects": [
+            {
+              "a": 1,
+              "b": 2
+            },
+            {
+              "a": 3,
+              "b": 4
+            }
+          ],
+          "emptyArray": [],
+          "mixedArray": [
+            null,
+            "string",
+            123,
+            false,
+            {}
+          ],
+          "deeplyNested": {
+            "level1": {
+              "level2": {
+                "level3": {
+                  "level4": "end"
+                }
+              }
+            }
+          },
+          "specialChars": "Quotes \" and backslash \\ and newline \n end",
+          "unicode": "こんにちは世界"
+        })))
+        .mount(&server)
+        .await;
+
+    let mut path = PathBuf::new();
+    path.push("tests/e2e_inputs/writing_snapshot.http");
+    let result = run(
+        &path,
+        &common::create_environment_variables(&server),
+        true,
+        true,
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(result, true);
+}

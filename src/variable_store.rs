@@ -1,10 +1,9 @@
 ﻿use crate::types::{
-    Array, CompositeString, CompositeStringPart, Element, Header, HttpFile, Json,
-    Member, Object, SnapResponse, Snapshot, Value, Variable,
+    Array, CompositeString, CompositeStringPart, Element, Header, HttpFile, Json, Member, Object,
+    SnapResponse, Snapshot, Value, Variable,
 };
-use reqwest::header::HeaderMap;
-use std::collections::HashMap;
 use crate::variable_generator;
+use std::collections::HashMap;
 
 pub(crate) struct VariableStore {
     pub(crate) variables: HashMap<String, Value>,
@@ -25,23 +24,13 @@ impl VariableStore {
     fn extract_variables_from_headers(
         &mut self,
         snapshot_headers: &Vec<Header>,
-        response_headers: &HeaderMap,
+        response_headers: &HashMap<String, Header>,
     ) {
         for header in snapshot_headers {
             if let Some(variable_name) = &header.variable_store {
                 self.variables.insert(
                     variable_name.to_string(),
-                    Value::String(CompositeString {
-                        parts: [CompositeStringPart::Literal(
-                            response_headers
-                                .get(&header.name)
-                                .unwrap()
-                                .to_str()
-                                .unwrap()
-                                .to_string(),
-                        )]
-                        .to_vec(),
-                    }),
+                    Value::String(response_headers.get(&header.name).unwrap().value.clone()),
                 );
             }
         }

@@ -1,0 +1,59 @@
+GET {{test_host}}/complex
+Accept: application/json
+
+SNAPSHOT
+status: 200
+
+content-length: 417
+content-type: application/json
+date: _
+
+{
+  "active": true,
+  "arrayOfObjects": [
+    {
+      "a": 1,
+      "b": 2
+    },
+    {
+      "a": 3,
+      "b": 4
+    }
+  ],
+  "deeplyNested": {
+    "level1": {
+      "level2": {
+        "level3": {
+          "level4": "end"
+        }
+      }
+    }
+  },
+  "emptyArray": [],
+  "id": 123,
+  "mixedArray": [
+    null,
+    "string",
+    123,
+    false,
+    {}
+  ],
+  "name": "Test Data",
+  "nestedObject": {
+    "emptyObject": {},
+    "key1": "value1",
+    "key2": {
+      "subArray": [
+        1,
+        2,
+        3,
+        {
+          "deep": "value"
+        }
+      ],
+      "subKey": 42
+    }
+  },
+  "specialChars": "Quotes \" and backslash \\ and newline \n end",
+  "unicode": "こんにちは世界"
+}

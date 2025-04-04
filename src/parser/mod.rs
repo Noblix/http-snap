@@ -19,15 +19,17 @@ fn parser() -> impl Parser<char, HttpFile, Error = Simple<char>> {
         .then(header_parser::headers_parser(false))
         .then(body_parser::body_parser(false))
         .then(snapshot_parser::snapshot_parser())
-        .map(|((((((options, variables), verb), url), headers), body), snapshot)| HttpFile {
-            options,
-            variables,
-            verb,
-            url,
-            headers,
-            body,
-            snapshot,
-        });
+        .map(
+            |((((((options, variables), verb), url), headers), body), snapshot)| HttpFile {
+                options,
+                variables,
+                verb,
+                url,
+                headers,
+                body,
+                snapshot,
+            },
+        );
 
     return base;
 }
@@ -44,10 +46,26 @@ pub async fn parse_response(
     let body = body_parser::body_parser(false)
         .parse(response.body.clone())
         .unwrap();
+    let headers = response
+        .headers
+        .iter()
+        .map(|(key, value)| {
+            let name = key.as_str().to_string();
+            let header = Header {
+                name: name.clone(),
+                value: CompositeString::new(vec![CompositeStringPart::Literal(
+                    value.to_str().unwrap().to_string(),
+                )]),
+                variable_store: None,
+                comparison: None,
+            };
+            (name, header)
+        })
+        .collect();
     return Ok(SnapResponse {
         options,
         status: response.status,
-        headers: response.headers.clone(),
+        headers,
         body,
     });
 }

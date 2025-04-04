@@ -1,4 +1,7 @@
-﻿use crate::types::SnapResponse;
+﻿use crate::types::{
+    Array, Comparison, Element, Header, Json, Object, SnapResponse, Value,
+};
+use itertools::Itertools;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
@@ -6,17 +9,23 @@ use std::path::PathBuf;
 pub fn merge_snapshots_into_files(
     path_to_file: &PathBuf,
     request_texts: &Vec<&str>,
-    index: usize,
-    parsed_response: SnapResponse,
+    mismatched_responses: Vec<(usize, SnapResponse)>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut merges = Vec::new();
-    for (i, raw_text) in request_texts.iter().enumerate() {
-        let mut merged = raw_text.to_string();
-        if i == index {
-            merged = create_content_with_snapshot(raw_text, &parsed_response);
+    let mut mismatch_counter = 0;
+    for (index, raw_text) in request_texts.iter().enumerate() {
+        if mismatch_counter < mismatched_responses.len() {
+            let (mismatch_index, mismatch_response) = &mismatched_responses[mismatch_counter];
+            if *mismatch_index == index {
+                let updated_mismatch = create_content_with_snapshot(raw_text, mismatch_response);
+                merges.push(updated_mismatch);
+                mismatch_counter += 1;
+                continue;
+            }
         }
-        merges.push(merged);
+        merges.push(raw_text.to_string())
     }
+
     let merged = merges.join("\n\n###\n\n");
 
     let mut file = File::options()
@@ -36,8 +45,9 @@ fn create_content_with_snapshot(raw_text: &str, response: &SnapResponse) -> Stri
 
     if response.options.include_headers {
         file_appending += "\n\n";
-        for (name, value) in &response.headers {
-            file_appending += &(name.as_str().to_owned() + ": " + value.to_str().unwrap());
+        for name in response.headers.keys().sorted() {
+            let header = response.headers.get(name).unwrap();
+            file_appending += &format_header(header);
             file_appending += "\n";
         }
     } else {
@@ -45,7 +55,7 @@ fn create_content_with_snapshot(raw_text: &str, response: &SnapResponse) -> Stri
     }
 
     file_appending += "\n";
-    file_appending += &serde_json::to_string_pretty(&response.body).unwrap();
+    file_appending += &format_body(&response.body);
 
     let merged = match parts_of_file.len() {
         1 => raw_text.to_owned() + "\n\n" + &file_appending,
@@ -54,4 +64,75 @@ fn create_content_with_snapshot(raw_text: &str, response: &SnapResponse) -> Stri
     };
 
     return merged;
+}
+
+fn format_header(header: &Header) -> String {
+    let formatted = format_comparison(&header.comparison)
+        .unwrap_or_else(|| header.value.to_string());
+    return format!("{}: {}", header.name, formatted);
+}
+
+fn format_body(body: &Json) -> String {
+    return format_element(&body.element, 0);
+}
+
+fn format_element(element: &Element, indent: usize) -> String {
+    return format_comparison(&element.comparison)
+        .unwrap_or_else(|| format_value(&element.value, indent));
+}
+
+fn format_comparison(comparison: &Option<Comparison>) -> Option<String> {
+    return match comparison {
+        Some(Comparison::Ignore) => Some("_".to_string()),
+        Some(Comparison::TimestampFormat(pattern)) => Some(format!("*timestamp(\"{pattern}\")*")),
+        Some(Comparison::Guid) => Some("*guid*".to_string()),
+        _ => None,
+    };
+}
+
+fn format_value(value: &Value, indent: usize) -> String {
+    match value {
+        Value::VariableReference(name) => format!("{{{{{name}}}}}"), // Gives {{name}}
+        Value::Object(object) => format_object(object, indent),
+        Value::Array(array) => format_array(array, indent),
+        Value::String(composite) => serde_json::to_string_pretty(&composite.to_string()).unwrap(),
+        Value::Number(number) => number.to_string(),
+        Value::Boolean(boolean) => boolean.to_string(),
+        Value::Null() => String::from("null"),
+    }
+}
+
+fn format_object(object: &Object, indent: usize) -> String {
+    if object.members.is_empty() {
+        return String::from("{}");
+    }
+
+    let indent_str = "  ".repeat(indent + 1);
+    let members = object
+        .members
+        .iter()
+        .map(|member| {
+            let value = format_element(&member.value, indent + 1);
+            format!("{}\"{}\": {}", indent_str, member.key, value)
+        })
+        .join(",\n");
+
+    let closing_indent = "  ".repeat(indent);
+    return format!("{{\n{members}\n{closing_indent}}}");
+}
+
+fn format_array(array: &Array, indent: usize) -> String {
+    let elements = array.get_elements();
+    if elements.len() == 0 {
+        return String::from("[]");
+    }
+
+    let indent_str = "  ".repeat(indent + 1);
+    let formatted_elements = elements
+        .iter()
+        .map(|element| format!("{}{}", indent_str, format_element(element, indent + 1)))
+        .join(",\n");
+
+    let closing_indent = "  ".repeat(indent);
+    return format!("[\n{}\n{}]", formatted_elements, closing_indent);
 }

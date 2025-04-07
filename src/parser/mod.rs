@@ -18,16 +18,16 @@ fn parser() -> impl Parser<char, HttpFile, Error = Simple<char>> {
         .then(url_parser::url_parser())
         .then(header_parser::headers_parser(false))
         .then(body_parser::body_parser(false))
-        .then(snapshot_parser::snapshot_parser())
+        .then(snapshot_parser::snapshots_parser())
         .map(
-            |((((((options, variables), verb), url), headers), body), snapshot)| HttpFile {
+            |((((((options, variables), verb), url), headers), body), snapshots)| HttpFile {
                 options,
                 variables,
                 verb,
                 url,
                 headers,
                 body,
-                snapshot,
+                snapshots,
             },
         );
 

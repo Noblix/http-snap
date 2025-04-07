@@ -73,7 +73,7 @@ impl VariableStore {
         let url_replaced = self.replace_in_composite_string(&input.url);
         let header_replaced = self.replace_in_headers(&input.headers);
         let body_replaced = self.replace_in_body(&input.body);
-        let snapshot_replaced = self.replace_in_snapshot(input.snapshot);
+        let snapshot_replaced = self.replace_in_snapshots(input.snapshots);
         return HttpFile {
             options: input.options,
             variables: variables
@@ -84,7 +84,7 @@ impl VariableStore {
             url: url_replaced,
             headers: header_replaced,
             body: body_replaced,
-            snapshot: snapshot_replaced,
+            snapshots: snapshot_replaced,
         };
     }
 
@@ -204,13 +204,16 @@ impl VariableStore {
         return Object { members: replaced };
     }
 
-    fn replace_in_snapshot(&self, snapshot: Snapshot) -> Snapshot {
-        let body = self.replace_in_body(&snapshot.body);
-
-        return Snapshot {
-            status: snapshot.status,
-            headers: snapshot.headers,
-            body,
-        };
+    fn replace_in_snapshots(&self, snapshots: Vec<Snapshot>) -> Vec<Snapshot> {
+        let mut result = Vec::new();
+        for snapshot in snapshots {
+            let body = self.replace_in_body(&snapshot.body);
+            result.push(Snapshot {
+                status: snapshot.status,
+                headers: snapshot.headers,
+                body,
+            });
+        }
+        return result;
     }
 }

@@ -1,5 +1,5 @@
 ﻿use crate::client::HttpResponse;
-use crate::types::{ExecuteOptions, HttpFile, Mode, UpdateOptions};
+use crate::types::{ExecuteOptions, HttpFile, Mode, UpdateMode, UpdateOptions};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fs::read_to_string;
@@ -42,23 +42,30 @@ pub async fn run(
         let parsed_response =
             parser::parse_response(http_file_without_variables.options, &response).await?;
 
-        let are_equal =
-            comparer::compare_to_snapshot(&http_file_without_variables.snapshot, &parsed_response);
+        let mut matched_option = false;
+        for (option_index, snapshot) in http_file_without_variables.snapshots.iter().enumerate() {
+            matched_option = comparer::compare_to_snapshot(&snapshot, &parsed_response);
+            if matched_option {
+                log::debug!(
+                    "Snapshot {0} matches on option {1}",
+                    index + 1,
+                    option_index + 1
+                );
+                variable_store.update_variables(&snapshot, &parsed_response);
+                break;
+            }
+        }
 
-        if are_equal {
-            log::debug!("Snapshot {0} matches!", index + 1);
-            variable_store
-                .update_variables(&http_file_without_variables.snapshot, &parsed_response);
-        } else {
+        if !matched_option {
             passed = false;
 
-            let updated_snapshot = replacer.detect_types(parsed_response);
-            updated_snapshots.push((index, updated_snapshot));
+            let new_snapshot = replacer.detect_types(parsed_response);
+            updated_snapshots.push((index, new_snapshot));
 
             log::error!("Snapshot {0} did NOT match", index + 1);
 
             if matches!(
-                execute_options.update_options,
+                &execute_options.update_options,
                 Some(UpdateOptions {
                     stop_on_failure: true,
                     ..
@@ -69,8 +76,18 @@ pub async fn run(
         }
     }
 
-    if execute_options.mode == Mode::Update {
-        merger::merge_snapshots_into_files(path_to_file, &request_texts, updated_snapshots)?;
+    if &execute_options.mode == &Mode::Update {
+        let update_mode = if let Some(mode) = &execute_options.update_options {
+            &mode.update_mode
+        } else {
+            &UpdateMode::Overwrite
+        };
+        merger::merge_snapshots_into_files(
+            path_to_file,
+            &request_texts,
+            updated_snapshots,
+            &update_mode,
+        )?;
     }
 
     return Ok(passed);

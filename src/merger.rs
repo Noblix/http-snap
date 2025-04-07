@@ -1,6 +1,4 @@
-﻿use crate::types::{
-    Array, Comparison, Element, Header, Json, Object, SnapResponse, Value,
-};
+﻿use crate::types::{Array, Comparison, Element, Header, Json, Object, SnapResponse, UpdateMode, Value};
 use itertools::Itertools;
 use std::fs::File;
 use std::io::Write;
@@ -10,6 +8,7 @@ pub fn merge_snapshots_into_files(
     path_to_file: &PathBuf,
     request_texts: &Vec<&str>,
     mismatched_responses: Vec<(usize, SnapResponse)>,
+    update_mode: &UpdateMode,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut merges = Vec::new();
     let mut mismatch_counter = 0;
@@ -17,7 +16,8 @@ pub fn merge_snapshots_into_files(
         if mismatch_counter < mismatched_responses.len() {
             let (mismatch_index, mismatch_response) = &mismatched_responses[mismatch_counter];
             if *mismatch_index == index {
-                let updated_mismatch = create_content_with_snapshot(raw_text, mismatch_response);
+                let updated_mismatch =
+                    create_content_with_snapshot(raw_text, mismatch_response, update_mode);
                 merges.push(updated_mismatch);
                 mismatch_counter += 1;
                 continue;
@@ -39,36 +39,49 @@ pub fn merge_snapshots_into_files(
     return Ok(());
 }
 
-fn create_content_with_snapshot(raw_text: &str, response: &SnapResponse) -> String {
+fn create_content_with_snapshot(
+    raw_text: &str,
+    response: &SnapResponse,
+    update_mode: &UpdateMode,
+) -> String {
     let parts_of_file: Vec<&str> = raw_text.split("SNAPSHOT").collect();
-    let mut file_appending = "SNAPSHOT\nstatus: ".to_owned() + &response.status.to_string();
+    let snapshot = format_snapshot(response);
+    if parts_of_file.len() == 1 {
+        return raw_text.trim().to_owned() + "\n\nSNAPSHOT\n" + &snapshot;
+    }
+    if parts_of_file.len() == 2 {
+        if update_mode == &UpdateMode::Overwrite {
+            return parts_of_file[0].trim().to_owned() + "\n\nSNAPSHOT\n" + &snapshot;
+        } else {
+            return raw_text.trim().to_owned() + "\n||\n" + &snapshot;
+        }
+    }
+    panic!("Found more than one snapshot place");
+}
+
+fn format_snapshot(response: &SnapResponse,) -> String {
+    let mut formatted = "status: ".to_owned() + &response.status.to_string();
 
     if response.options.include_headers {
-        file_appending += "\n\n";
+        formatted += "\n\n";
         for name in response.headers.keys().sorted() {
             let header = response.headers.get(name).unwrap();
-            file_appending += &format_header(header);
-            file_appending += "\n";
+            formatted += &format_header(header);
+            formatted += "\n";
         }
     } else {
-        file_appending += "\n";
+        formatted += "\n";
     }
 
-    file_appending += "\n";
-    file_appending += &format_body(&response.body);
+    formatted += "\n";
+    formatted += &format_body(&response.body);
 
-    let merged = match parts_of_file.len() {
-        1 => raw_text.to_owned() + "\n\n" + &file_appending,
-        2 => parts_of_file[0].to_owned() + &file_appending,
-        _ => panic!("Found more than one snapshot place"),
-    };
-
-    return merged;
+    return formatted;
 }
 
 fn format_header(header: &Header) -> String {
-    let formatted = format_comparison(&header.comparison)
-        .unwrap_or_else(|| header.value.to_string());
+    let formatted =
+        format_comparison(&header.comparison).unwrap_or_else(|| header.value.to_string());
     return format!("{}: {}", header.name, formatted);
 }
 

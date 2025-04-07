@@ -13,17 +13,22 @@ impl ExecuteOptions {
     pub fn new_test() -> Self {
         return Self {
             mode: Mode::Test,
-            update_options: None
+            update_options: None,
         };
     }
 
-    pub fn new_update(stop_on_failure: bool, detectors: &[Detector]) -> Self {
+    pub fn new_update(
+        stop_on_failure: bool,
+        update_mode: UpdateMode,
+        detectors: &[Detector],
+    ) -> Self {
         return Self {
             mode: Mode::Update,
-            update_options: Some(UpdateOptions{
+            update_options: Some(UpdateOptions {
                 stop_on_failure,
-                detectors: detectors.iter().cloned().collect()
-            })
+                update_mode,
+                detectors: detectors.iter().cloned().collect(),
+            }),
         };
     }
 }
@@ -31,19 +36,26 @@ impl ExecuteOptions {
 #[derive(Debug, Eq, PartialEq)]
 pub enum Mode {
     Test,
-    Update
+    Update,
 }
 
 #[derive(Debug)]
 pub struct UpdateOptions {
     pub stop_on_failure: bool,
-    pub detectors: HashSet<Detector>
+    pub update_mode: UpdateMode,
+    pub detectors: HashSet<Detector>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum UpdateMode {
+    Overwrite,
+    Append,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum Detector {
     Timestamp,
-    Guid
+    Guid,
 }
 
 #[derive(Debug)]
@@ -54,13 +66,13 @@ pub struct HttpFile {
     pub url: CompositeString,
     pub headers: Vec<Header>,
     pub body: Json,
-    pub snapshot: Snapshot,
+    pub snapshots: Vec<Snapshot>,
 }
 
 #[derive(Debug)]
 pub enum Variable {
     Value(Value),
-    Generator(Generator)
+    Generator(Generator),
 }
 
 #[derive(Debug, Clone)]
@@ -72,7 +84,7 @@ pub enum Generator {
 pub struct Snapshot {
     pub status: Number,
     pub headers: Vec<Header>,
-    pub body: Json
+    pub body: Json,
 }
 
 #[derive(Debug, Clone)]
@@ -155,7 +167,7 @@ pub struct Header {
     pub name: String,
     pub value: CompositeString,
     pub variable_store: Option<String>,
-    pub comparison: Option<Comparison>
+    pub comparison: Option<Comparison>,
 }
 
 #[derive(Debug)]
@@ -176,7 +188,7 @@ impl Serialize for Json {
 pub struct Element {
     pub value: Value,
     pub variable_store: Option<String>,
-    pub comparison: Option<Comparison>
+    pub comparison: Option<Comparison>,
 }
 
 impl Serialize for Element {
@@ -250,7 +262,7 @@ pub struct Member {
 pub enum Array {
     VariableReference(String),
     Literal(Vec<Element>),
-    Composite(Vec<Array>)
+    Composite(Vec<Array>),
 }
 
 impl Array {
@@ -263,9 +275,10 @@ impl Array {
                     result.extend(part.get_elements());
                 }
                 result
-            },
-            Array::VariableReference(name) =>
+            }
+            Array::VariableReference(name) => {
                 panic!("Variable named {name} has not been replaced yet")
+            }
         };
     }
 }

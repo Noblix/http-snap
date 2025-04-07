@@ -1,5 +1,5 @@
 ﻿use http_snap::run;
-use http_snap::types::{Detector, ExecuteOptions};
+use http_snap::types::{Detector, ExecuteOptions, UpdateMode};
 use serde_json::json;
 use std::path::PathBuf;
 use uuid::Uuid;
@@ -79,7 +79,7 @@ async fn detect_timestamp_formats() {
     let result = run(
         &path,
         &common::create_environment_variables(&server),
-        &ExecuteOptions::new_update(true, &[Detector::Timestamp]),
+        &ExecuteOptions::new_update(true, UpdateMode::Overwrite, &[Detector::Timestamp]),
     )
     .await
     .unwrap();
@@ -167,7 +167,7 @@ async fn detect_guid_and_timestamp() {
     let result = run(
         &path,
         &common::create_environment_variables(&server),
-        &ExecuteOptions::new_update(true, &[Detector::Guid, Detector::Timestamp]),
+        &ExecuteOptions::new_update(true, UpdateMode::Overwrite, &[Detector::Guid, Detector::Timestamp]),
     )
     .await
     .unwrap();
@@ -238,7 +238,7 @@ async fn writing_snapshot() {
     let result = run(
         &path,
         &common::create_environment_variables(&server),
-        &ExecuteOptions::new_update(true, &[]),
+        &ExecuteOptions::new_update(true, UpdateMode::Overwrite, &[]),
     )
     .await
     .unwrap();

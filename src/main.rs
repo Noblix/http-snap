@@ -1,8 +1,8 @@
-use crate::cli::{expand_paths, Cli, Commands, GlobalOptions};
+use crate::cli::{expand_paths, Cli, Commands, GlobalOptions, UpdateMode};
 use clap::Parser;
 use http_snap::parser::parse_environment;
 use http_snap::types::{ExecuteOptions, Mode, Value};
-use http_snap::{variable_generator};
+use http_snap::variable_generator;
 use http_snap::{run, types};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -49,6 +49,11 @@ async fn run_update(
         mode: Mode::Update,
         update_options: Some(types::UpdateOptions {
             stop_on_failure: update_options.stop_on_failure,
+            update_mode: if update_options.update_mode == UpdateMode::Overwrite {
+                types::UpdateMode::Overwrite
+            } else {
+                types::UpdateMode::Append
+            },
             detectors: get_detectors(update_options.detectors),
         }),
     };
@@ -61,13 +66,14 @@ fn get_detectors(input: Vec<cli::Detector>) -> HashSet<types::Detector> {
         return HashSet::from([types::Detector::Timestamp, types::Detector::Guid]);
     }
     // Otherwise, map each detector.
-    input.iter().filter_map(|detector| {
-        match detector {
+    input
+        .iter()
+        .filter_map(|detector| match detector {
             cli::Detector::Timestamp => Some(types::Detector::Timestamp),
             cli::Detector::Guid => Some(types::Detector::Guid),
             _ => None,
-        }
-    }).collect()
+        })
+        .collect()
 }
 
 async fn execute(

@@ -54,9 +54,19 @@ pub struct UpdateOptions {
     #[arg(long = "continue-on-failure", action = clap::ArgAction::SetFalse, default_value_t = true)]
     pub(crate) stop_on_failure: bool,
 
+    /// Choose how mismatching snapshots should be updated.
+    #[arg(long, value_enum, default_value_t = UpdateMode::Overwrite)]
+    pub(crate) update_mode: UpdateMode,
+
     /// Choose which detectors to run. Can be specified multiple times.
     #[arg(long, value_enum, value_delimiter = ',', num_args = 1..)]
     pub(crate) detectors: Vec<Detector>
+}
+
+#[derive(Debug, ValueEnum, Clone, PartialEq, Eq)]
+pub enum UpdateMode {
+    Overwrite,
+    Append,
 }
 
 #[derive(Debug, ValueEnum, Clone, PartialEq, Eq)]

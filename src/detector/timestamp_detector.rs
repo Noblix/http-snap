@@ -40,6 +40,7 @@ fn try_to_match_patterns(value: &String) -> Option<Comparison> {
         "%m/%d/%Y %I:%M:%S %p",
         "%Y%m%dT%H%M%SZ",
         "%Y-%m-%dT%H:%M:%SZ",
+        "%Y-%m-%d %H:%M:%SZ"
     ];
     for pattern in patterns {
         if DateTime::parse_from_str(&value, &pattern).is_ok() {

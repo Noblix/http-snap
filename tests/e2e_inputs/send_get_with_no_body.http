@@ -6,7 +6,7 @@ status: 200
 
 content-type: application/json
 content-length: 17
-date: _
+date: {{_:_}}
 
 {
   "hello": "world"

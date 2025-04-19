@@ -96,9 +96,9 @@ fn format_element(element: &Element, indent: usize) -> String {
 
 fn format_comparison(comparison: &Option<Comparison>) -> Option<String> {
     return match comparison {
-        Some(Comparison::Ignore) => Some("_".to_string()),
-        Some(Comparison::TimestampFormat(pattern)) => Some(format!("*timestamp(\"{pattern}\")*")),
-        Some(Comparison::Guid) => Some("*guid*".to_string()),
+        Some(Comparison::Ignore) => Some("{{_:_}}".to_string()),
+        Some(Comparison::TimestampFormat(pattern)) => Some(format!("{{{{_:timestamp(\"{pattern}\")}}}}")),
+        Some(Comparison::Guid) => Some("{{_:guid}}".to_string()),
         _ => None,
     };
 }

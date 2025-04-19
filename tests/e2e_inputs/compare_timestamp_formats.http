@@ -6,11 +6,11 @@ status: 200
 
 content-type: application/json
 content-length: 167
-date: *timestamp("%a, %d %b %Y %H:%M:%S %Z")*
+date: {{_ : timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
 
 {
-  "12‑Hour-Format": *timestamp("%m/%d/%Y %I:%M:%S %p")*,
-  "ISO-8601-Basic": *timestamp("%Y%m%dT%H%M%SZ")*,
-  "ISO-8601-Extended": *timestamp("%Y-%m-%dT%H:%M:%SZ")*,
-  "RFC-2822": *timestamp("%a, %d %b %Y %H:%M:%S %Z")*
+  "12‑Hour-Format": {{_ : timestamp("%m/%d/%Y %I:%M:%S %p")}},
+  "ISO-8601-Basic": {{_ : timestamp("%Y%m%dT%H%M%SZ")}},
+  "ISO-8601-Extended": {{_ : timestamp("%Y-%m-%dT%H:%M:%SZ")}},
+  "RFC-2822": {{_ : timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
 }

@@ -18,12 +18,12 @@ SNAPSHOT
 status: 200
 
 content-type: application/json; charset=utf-8
-date: _
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
 server: Kestrel
 transfer-encoding: chunked
 
 {
-  "items": _ -> @before_items
+  "items": {{before_items:_}}
 }
 
 ###
@@ -41,13 +41,13 @@ SNAPSHOT
 status: 201
 
 content-type: application/json; charset=utf-8
-date: _
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
+location: {{item_uri:_}}
 server: Kestrel
-location: _ -> @item_uri
 transfer-encoding: chunked
 
 {
-  "id": _ -> @item_id
+  "id": {{item_id:guid}}
 }
 
 ###
@@ -59,7 +59,7 @@ SNAPSHOT
 status: 200
 
 content-type: application/json; charset=utf-8
-date: _
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
 server: Kestrel
 transfer-encoding: chunked
 
@@ -67,7 +67,7 @@ transfer-encoding: chunked
   "id": "{{item_id}}",
   "text": "{{text}}",
   "isCompleted": false,
-  "lastUpdated": _
+  "lastUpdated": {{_:timestamp("%Y-%m-%d %H:%M:%SZ")}}
 }
 
 ###
@@ -78,7 +78,7 @@ Content-Type: application/json; charset=utf-8
 SNAPSHOT
 status: 204
 
-date: _
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
 server: Kestrel
 
 null
@@ -92,16 +92,18 @@ SNAPSHOT
 status: 200
 
 content-type: application/json; charset=utf-8
-date: _
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
 server: Kestrel
 transfer-encoding: chunked
 
-{
-  "id": "{{item_id}}",
-  "text": "{{text}}",
-  "isCompleted": true,
-  "lastUpdated": _
-}
+{{ item:
+  {
+    "id": "{{item_id}}",
+    "text": "{{text}}",
+    "isCompleted": true,
+    "lastUpdated": {{_:timestamp("%Y-%m-%d %H:%M:%SZ")}}
+  }
+}}
 
 ###
 
@@ -112,7 +114,7 @@ SNAPSHOT
 status: 200
 
 content-type: application/json; charset=utf-8
-date: _
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
 server: Kestrel
 transfer-encoding: chunked
 
@@ -121,14 +123,10 @@ transfer-encoding: chunked
     {{before_items}}
     +
     [
-      {
-        "id": "{{item_id}}",
-        "text": "{{text}}",
-        "isCompleted": true,
-        "lastUpdated": _
-      }
+      {{item}}
     ]
 }
+
 
 ###
 
@@ -138,7 +136,7 @@ Content-Type: application/json; charset=utf-8
 SNAPSHOT
 status: 204
 
-date: _
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
 server: Kestrel
 
 null
@@ -152,7 +150,7 @@ SNAPSHOT
 status: 200
 
 content-type: application/json; charset=utf-8
-date: _
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
 server: Kestrel
 transfer-encoding: chunked
 
@@ -169,7 +167,7 @@ SNAPSHOT
 status: 404
 
 content-type: application/problem+json
-date: _
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
 server: Kestrel
 transfer-encoding: chunked
 

@@ -1,8 +1,5 @@
 ﻿use crate::parser::body_parser;
-use crate::parser::snapshot_parser::{
-    guid_format_parser, ignore_comparison_parser, timestamp_format_parser,
-};
-use crate::parser::variable_parser::variable_store_parser;
+use crate::parser::variable_parser::{variable_store_header_parser};
 use crate::types::*;
 use chumsky::error::Simple;
 use chumsky::prelude::*;
@@ -26,12 +23,11 @@ fn headers_no_compare_parser() -> Box<dyn Parser<char, Vec<Header>, Error = Simp
             .then_ignore(just(':'))
             .then_ignore(repeated_spaces())
             .then(header_value())
-            .then(variable_store_parser().or_not())
             .then_ignore(whitespace())
-            .map(|((name, value), variable_store)| Header {
+            .map(|(name, value)| Header {
                 name,
                 value,
-                variable_store,
+                variable_store: None,
                 comparison: None,
             })
             .padded()
@@ -44,18 +40,12 @@ fn headers_compare_parser() -> Box<dyn Parser<char, Vec<Header>, Error = Simple<
         header_key()
             .then_ignore(just(':'))
             .then_ignore(repeated_spaces())
-            .then(choice((
-                choice((
-                    timestamp_format_parser(),
-                    guid_format_parser(),
-                    ignore_comparison_parser(),
-                ))
-                .map(|comparison| (CompositeString::new(Vec::new()), Some(comparison))),
-                header_value().map(|value| (value, Some(Comparison::Exact))),
-            )))
-            .then(variable_store_parser().or_not())
+            .then(
+                variable_store_header_parser()
+                    .or(header_value().map(|value| (None, (value, Some(Comparison::Exact))))),
+            )
             .then_ignore(whitespace())
-            .map(|((name, (value, comparison)), variable_store)| Header {
+            .map(|(name, (variable_store, (value, comparison)))| Header {
                 name,
                 value,
                 variable_store,

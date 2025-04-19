@@ -1,8 +1,13 @@
 ﻿use crate::parser::body_parser::{element_parser, value_parser};
-use crate::types::{CompositeStringPart, Generator, Variable};
+use crate::parser::snapshot_parser::{
+    guid_format_parser, ignore_comparison_parser, timestamp_format_parser,
+};
+use crate::types::{
+    Comparison, CompositeString, CompositeStringPart, Element, Generator, Value, Variable,
+};
 use chumsky::error::Simple;
 use chumsky::prelude::*;
-use chumsky::text::{whitespace, Character};
+use chumsky::text::{Character};
 use chumsky::Parser;
 use std::collections::HashMap;
 
@@ -27,12 +32,55 @@ pub(crate) fn variables_parser(
         });
 }
 
-pub(crate) fn variable_store_parser() -> impl Parser<char, String, Error = Simple<char>> {
-    return just("->")
-        .ignore_then(whitespace())
-        .ignore_then(just('@'))
-        .ignore_then(text::ident())
-        .map(|name| name);
+fn repeated_spaces() -> impl Parser<char, Vec<char>, Error = Simple<char>> {
+    return just(' ').repeated();
+}
+
+pub(crate) fn variable_store_header_parser(
+) -> impl Parser<char, (Option<String>, (CompositeString, Option<Comparison>)), Error = Simple<char>>
+{
+    return just("{{").then(repeated_spaces()).ignore_then(
+        text::ident()
+            .map(|name| Some(name))
+            .or(just("_").to(None))
+            .then_ignore(repeated_spaces().then(just(":").then(repeated_spaces())))
+            .then(choice((
+                timestamp_format_parser(),
+                guid_format_parser(),
+                ignore_comparison_parser(),
+            )))
+            .then_ignore(repeated_spaces().then(just("}}")))
+            .map(|(variable_store, comparison)| {
+                (
+                    variable_store,
+                    (CompositeString::new(Vec::new()), Some(comparison)),
+                )
+            }),
+    );
+}
+
+pub(crate) fn variable_store_body_parser(
+    element_parser: impl Parser<char, Element, Error = Simple<char>> + Clone,
+) -> impl Parser<char, (Option<String>, (Value, Option<Comparison>)), Error = Simple<char>> {
+    return just("{{").padded().ignore_then(
+        text::ident()
+            .map(|name| Some(name))
+            .or(just("_").to(None))
+            .then_ignore(just(":").padded())
+            .then(
+                (choice((
+                    timestamp_format_parser(),
+                    guid_format_parser(),
+                    ignore_comparison_parser(),
+                ))
+                .map(|comparison| (Value::Null(), comparison)))
+                .or(value_parser(element_parser).map(|value| (value, Comparison::Exact))),
+            )
+            .then_ignore(just("}}").padded())
+            .map(|(variable_store, (value, comparison))| {
+                (variable_store, (value, Some(comparison)))
+            }),
+    );
 }
 
 pub(crate) fn variable_name_parser() -> impl Parser<char, CompositeStringPart, Error = Simple<char>>

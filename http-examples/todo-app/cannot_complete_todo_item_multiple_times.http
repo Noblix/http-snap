@@ -20,13 +20,13 @@ SNAPSHOT
 status: 201
 
 content-type: application/json; charset=utf-8
-date: _
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
+location: {{location: _}}
 server: Kestrel
-location: _ -> @location
 transfer-encoding: chunked
 
 {
-  "id": _
+  "id": {{_:guid}}
 }
 
 ###
@@ -37,7 +37,7 @@ Content-Type: application/json; charset=utf-8
 SNAPSHOT
 status: 204
 
-date: _
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
 server: Kestrel
 
 null
@@ -51,7 +51,7 @@ SNAPSHOT
 status: 400
 
 content-type: application/problem+json
-date: _
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
 server: Kestrel
 transfer-encoding: chunked
 

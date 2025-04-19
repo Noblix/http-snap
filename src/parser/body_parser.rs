@@ -1,8 +1,5 @@
-﻿use crate::parser::snapshot_parser::{
-    guid_format_parser, ignore_comparison_parser, timestamp_format_parser,
-};
-use crate::parser::variable_parser::{
-    variable_name_parser, variable_name_string_parser, variable_store_parser,
+﻿use crate::parser::variable_parser::{
+    variable_name_parser, variable_name_string_parser, variable_store_body_parser,
 };
 use crate::types::*;
 use chumsky::error::Simple;
@@ -134,24 +131,18 @@ fn element_compare_parser() -> Rc<dyn Parser<char, Element, Error = Simple<char>
     return Rc::new(recursive(|element_compare_parser| {
         whitespace()
             .ignore_then(choice((
-                choice((
-                    ignore_comparison_parser(),
-                    timestamp_format_parser(),
-                    guid_format_parser(),
-                ))
-                .then(variable_store_parser().or_not())
-                .map(|(comparison, variable_store)| Element {
-                    value: Value::Null(),
-                    variable_store,
-                    comparison: Some(comparison),
-                }),
-                value_parser(element_compare_parser)
-                    .then(variable_store_parser().or_not())
-                    .map(|(value, variable_store)| Element {
+                variable_store_body_parser(element_compare_parser.clone()).map(
+                    |(variable_store, (value, comparison))| Element {
                         value,
                         variable_store,
-                        comparison: Some(Comparison::Exact),
-                    }),
+                        comparison,
+                    },
+                ),
+                value_parser(element_compare_parser).map(|value| Element {
+                    value,
+                    variable_store: None,
+                    comparison: Some(Comparison::Exact),
+                }),
             )))
             .then_ignore(whitespace())
     }));
@@ -162,11 +153,10 @@ fn element_no_compare_parser() -> Rc<dyn Parser<char, Element, Error = Simple<ch
         whitespace()
             .ignore_then(value_parser(element_no_compare_parser))
             .then_ignore(whitespace())
-            .then(variable_store_parser().or_not())
             .then_ignore(whitespace())
-            .map(|(value, variable_store)| Element {
+            .map(|value| Element {
                 value,
-                variable_store,
+                variable_store: None,
                 comparison: None,
             })
     }));

@@ -8,9 +8,9 @@ status: 200
 
 content-type: application/json
 content-length: 59
-date: _
+date: {{_ : _}}
 
 {
-  "id": *guid*,
+  "id": {{_: guid}},
   "name": "Echo"
 }

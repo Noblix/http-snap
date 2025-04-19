@@ -1,4 +1,4 @@
-﻿POST https://localhost:50001/sign-in
+POST https://localhost:50001/sign-in
 Accept: application/json
 Content-Type: application/json
 
@@ -6,11 +6,11 @@ SNAPSHOT
 status: 200
 
 content-type: text/html; charset=utf-8
-date: _
+date: {{_:_}}
 server: Kestrel
 cache-control: no-cache, no-store
 pragma: no-cache
-set-cookie: _
+set-cookie: {{_:_}}
 transfer-encoding: chunked
 x-frame-options: SAMEORIGIN
 

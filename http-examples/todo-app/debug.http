@@ -1,4 +1,4 @@
-﻿include-headers: false
+include-headers: false
 
 POST https://localhost:50001/sign-in
 
@@ -17,22 +17,14 @@ Content-Type: application/json; charset=utf-8
 }
 
 SNAPSHOT
-status: 400
+status: 201
 
-content-type: application/problem+json
-date: _
+content-type: application/json; charset=utf-8
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
+location: {{_:_}}
 server: Kestrel
 transfer-encoding: chunked
 
 {
-  "type": "123"
-}
-
-###
-
-POST https://localhost:50001/api/items
-Content-Type: application/json; charset=utf-8
-
-{
-  "text": "{{item_id}}"
+  "id": {{_:guid}}
 }

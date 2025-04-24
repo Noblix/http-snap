@@ -35,6 +35,7 @@ impl Detector for TimestampDetector {
 
 
 fn try_to_match_patterns(value: &String) -> Option<Comparison> {
+    // Allowed patterns https://docs.rs/chrono/latest/chrono/format/strftime/index.html
     let patterns = [
         "%a, %d %b %Y %H:%M:%S %Z",
         "%m/%d/%Y %I:%M:%S %p",

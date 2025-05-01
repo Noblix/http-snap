@@ -1,0 +1,29 @@
+GET {{test_host}}/tokens
+Accept: application/json
+
+SNAPSHOT
+status: 200
+
+content-length: 17
+content-type: application/json
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
+
+{
+  "token": {{token_id:_}}
+}
+
+###
+
+GET {{test_host}}/token/{{token_id}}
+Accept: application/json
+
+SNAPSHOT
+status: 200
+
+content-length: 14
+content-type: application/json
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
+
+{
+  "found": true
+}

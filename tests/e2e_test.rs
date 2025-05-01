@@ -176,6 +176,34 @@ async fn detect_guid_and_timestamp() {
 }
 
 #[tokio::test]
+async fn import_and_use_variable() {
+    common::init_logger();
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/tokens"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"token": "12345"})))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/token/12345"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"found": true})))
+        .mount(&server)
+        .await;
+
+    let mut path = PathBuf::new();
+    path.push("tests/e2e_inputs/importer.http");
+    let result = run(
+        &path,
+        &common::create_environment_variables(&server),
+        &ExecuteOptions::new_test(),
+    )
+        .await
+        .unwrap();
+
+    assert_eq!(result, true);
+}
+
+#[tokio::test]
 async fn writing_snapshot() {
     common::init_logger();
     let server = MockServer::start().await;

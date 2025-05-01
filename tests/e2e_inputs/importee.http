@@ -1,0 +1,13 @@
+GET {{test_host}}/tokens
+Accept: application/json
+
+SNAPSHOT
+status: 200
+
+content-length: 17
+content-type: application/json
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
+
+{
+  "token": {{token_id:_}}
+}

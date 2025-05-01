@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 pub fn merge_snapshots_into_files(
     path_to_file: &PathBuf,
-    request_texts: &Vec<&str>,
+    request_texts: &Vec<String>,
     mismatched_responses: Vec<(usize, SnapResponse)>,
     update_mode: &UpdateMode,
 ) -> Result<(), Box<dyn std::error::Error>> {

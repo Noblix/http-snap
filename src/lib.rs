@@ -3,7 +3,8 @@ use crate::types::{ExecuteOptions, HttpFile, Mode, UpdateMode, UpdateOptions};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fs::read_to_string;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use itertools::Itertools;
 
 pub mod client;
 pub mod comparer;
@@ -19,9 +20,7 @@ pub async fn run(
     environment_variables: &HashMap<String, types::Value>,
     execute_options: &ExecuteOptions,
 ) -> Result<bool, Box<dyn std::error::Error>> {
-    let raw_text = read_to_string(path_to_file).unwrap();
-    let text = raw_text.trim_start_matches("\u{feff}");
-    let request_texts: Vec<&str> = text.split("###").map(|s| s.trim()).collect();
+    let request_texts = extract_requests(path_to_file);
 
     let mut variable_store = variable_store::VariableStore::new();
     variable_store.extend_variables(&environment_variables);
@@ -91,6 +90,44 @@ pub async fn run(
     }
 
     return Ok(passed);
+}
+
+fn extract_requests(path_to_file: &PathBuf) -> Vec<String> {
+    let raw_text = read_to_string(path_to_file).unwrap();
+    let text = raw_text.trim_start_matches("\u{feff}");
+    let mut request_texts = Vec::new();
+
+    let (files_to_import, text_without_imports) = extract_imports(text, path_to_file);
+    for file in files_to_import {
+        let imported_requests = extract_requests(&file);
+        for request in imported_requests {
+            request_texts.push(request.trim().to_string())
+        }
+    }
+
+    for request in text_without_imports.split("###") {
+        request_texts.push(request.trim().to_string())
+    }
+    return request_texts;
+}
+
+fn extract_imports(text: &str, current_path: &PathBuf) -> (Vec<PathBuf>, String) {
+    let base_dir = current_path.parent().unwrap_or_else(|| Path::new(""));
+    
+    let mut imports = Vec::new();
+    let mut index = 0;
+    for line in text.lines() {
+        let trimmed = line.trim();
+        if let Some(path) = trimmed.strip_prefix("import ") {
+            let full = base_dir.join(path.trim());
+            imports.push(full);
+        } else if !trimmed.is_empty() {
+            // once we hit a non-import, non-blank line, stop
+            break;
+        }
+        index += 1;
+    }
+    return (imports, text.lines().skip(index).join("\n"));
 }
 
 fn log_variable_store(variable_store: &variable_store::VariableStore) {

@@ -74,8 +74,7 @@ pub async fn run(
         }
     }
 
-    // TODO: Add && !passed
-    if &execute_options.mode == &Mode::Update {
+    if &execute_options.mode == &Mode::Update && !passed {
         let update_mode = if let Some(mode) = &execute_options.update_options {
             &mode.update_mode
         } else {

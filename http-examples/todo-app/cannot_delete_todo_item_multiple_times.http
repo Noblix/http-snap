@@ -1,13 +1,4 @@
-include-headers: false
-
-POST https://localhost:50001/sign-in
-
-SNAPSHOT
-status: 200
-
-null
-
-###
+import sign_in.http
 
 POST https://localhost:50001/api/items
 Content-Type: application/json; charset=utf-8

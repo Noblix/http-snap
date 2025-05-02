@@ -1,14 +1,4 @@
-include-headers: false
-
-@path = "sign-in"
-POST https://localhost:50001/{{path}}
-
-SNAPSHOT
-status: 200
-
-null
-
-###
+import sign_in.http
 
 POST https://localhost:50001/api/items
 Content-Type: application/json; charset=utf-8

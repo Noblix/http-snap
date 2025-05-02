@@ -1,15 +1,6 @@
-include-headers: false
+import sign_in.http
 
 @host = "https://localhost:50001"
-
-POST {{host}}/sign-in
-
-SNAPSHOT
-status: 200
-
-null
-
-###
 
 GET {{host}}/api/items
 Content-Type: application/json; charset=utf-8
@@ -126,7 +117,6 @@ transfer-encoding: chunked
       {{item}}
     ]
 }
-
 
 ###
 

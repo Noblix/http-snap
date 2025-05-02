@@ -1,10 +1,10 @@
 ﻿use crate::client::HttpResponse;
-use crate::types::{ExecuteOptions, HttpFile, Mode, UpdateMode, UpdateOptions};
+use crate::types::{ExecuteOptions, HttpFile, Mode, RawInput, UpdateMode, UpdateOptions};
+use itertools::Itertools;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
-use itertools::Itertools;
 
 pub mod client;
 pub mod comparer;
@@ -29,8 +29,8 @@ pub async fn run(
     let replacer = detector::Replacer::new(&execute_options.update_options);
     let mut passed = true;
     let mut updated_snapshots = Vec::new();
-    for (index, request_text) in request_texts.clone().iter().enumerate() {
-        let http_file = parser::parse_file(request_text).unwrap();
+    for (index, request) in request_texts.clone().iter().enumerate() {
+        let http_file = parser::parse_file(&request.text).unwrap();
         let http_file_without_variables = variable_store.replace_variables(http_file);
         log_variable_store(&variable_store);
 
@@ -75,6 +75,7 @@ pub async fn run(
         }
     }
 
+    // TODO: Add && !passed
     if &execute_options.mode == &Mode::Update {
         let update_mode = if let Some(mode) = &execute_options.update_options {
             &mode.update_mode
@@ -92,35 +93,42 @@ pub async fn run(
     return Ok(passed);
 }
 
-fn extract_requests(path_to_file: &PathBuf) -> Vec<String> {
+fn extract_requests(path_to_file: &PathBuf) -> Vec<RawInput> {
     let raw_text = read_to_string(path_to_file).unwrap();
     let text = raw_text.trim_start_matches("\u{feff}");
     let mut request_texts = Vec::new();
 
-    let (files_to_import, text_without_imports) = extract_imports(text, path_to_file);
+    let (files_to_import, text_without_imports) = extract_imports(text);
     for file in files_to_import {
-        let imported_requests = extract_requests(&file);
+        let base_dir = path_to_file.parent().unwrap_or_else(|| Path::new(""));
+        let full_path = base_dir.join(&file);
+
+        let imported_requests = extract_requests(&full_path);
+
         for request in imported_requests {
-            request_texts.push(request.trim().to_string())
+            request_texts.push(RawInput {
+                text: request.text,
+                imported_path: Some(PathBuf::from(&file)),
+            })
         }
     }
 
     for request in text_without_imports.split("###") {
-        request_texts.push(request.trim().to_string())
+        request_texts.push(RawInput {
+            text: request.trim().to_string(),
+            imported_path: None,
+        })
     }
     return request_texts;
 }
 
-fn extract_imports(text: &str, current_path: &PathBuf) -> (Vec<PathBuf>, String) {
-    let base_dir = current_path.parent().unwrap_or_else(|| Path::new(""));
-    
+fn extract_imports(text: &str) -> (Vec<String>, String) {
     let mut imports = Vec::new();
     let mut index = 0;
     for line in text.lines() {
         let trimmed = line.trim();
         if let Some(path) = trimmed.strip_prefix("import ") {
-            let full = base_dir.join(path.trim());
-            imports.push(full);
+            imports.push(path.to_string());
         } else if !trimmed.is_empty() {
             // once we hit a non-import, non-blank line, stop
             break;

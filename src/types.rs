@@ -2,6 +2,7 @@
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
+use std::path::PathBuf;
 
 #[derive(Debug)]
 pub struct ExecuteOptions {
@@ -56,6 +57,12 @@ pub enum UpdateMode {
 pub enum Detector {
     Timestamp,
     Guid,
+}
+
+#[derive(Debug, Clone)]
+pub struct RawInput {
+    pub text: String,
+    pub imported_path: Option<PathBuf>,
 }
 
 #[derive(Debug)]

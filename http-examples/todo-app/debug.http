@@ -1,5 +1,3 @@
-include-headers: false
-
 POST https://localhost:50001/sign-in
 
 SNAPSHOT

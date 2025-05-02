@@ -76,15 +76,11 @@ fn create_content_with_snapshot(
 
 fn format_snapshot(response: &SnapResponse) -> String {
     let mut formatted = "status: ".to_owned() + &response.status.to_string();
+    formatted += "\n\n";
 
-    if response.options.include_headers {
-        formatted += "\n\n";
-        for name in response.headers.keys().sorted() {
-            let header = response.headers.get(name).unwrap();
-            formatted += &format_header(header);
-            formatted += "\n";
-        }
-    } else {
+    for name in response.headers.keys().sorted() {
+        let header = response.headers.get(name).unwrap();
+        formatted += &format_header(header);
         formatted += "\n";
     }
 

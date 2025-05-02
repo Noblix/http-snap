@@ -38,8 +38,7 @@ pub async fn run(
         let response = client.send_request(&http_file_without_variables).await?;
         log_response(&response);
 
-        let parsed_response =
-            parser::parse_response(http_file_without_variables.options, &response).await?;
+        let parsed_response = parser::parse_response(&response).await?;
 
         let mut matched_option = false;
         for (option_index, snapshot) in http_file_without_variables.snapshots.iter().enumerate() {

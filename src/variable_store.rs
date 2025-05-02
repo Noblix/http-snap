@@ -75,7 +75,6 @@ impl VariableStore {
         let body_replaced = self.replace_in_body(&input.body);
         let snapshot_replaced = self.replace_in_snapshots(input.snapshots);
         return HttpFile {
-            options: input.options,
             variables: variables
                 .into_iter()
                 .map(|(k, v)| (k, Variable::Value(v)))

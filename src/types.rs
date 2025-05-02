@@ -67,7 +67,6 @@ pub struct RawInput {
 
 #[derive(Debug)]
 pub struct HttpFile {
-    pub options: SnapOptions,
     pub variables: HashMap<String, Variable>,
     pub verb: HttpVerb,
     pub url: CompositeString,
@@ -104,15 +103,9 @@ pub enum Comparison {
 
 #[derive(Debug)]
 pub struct SnapResponse {
-    pub options: SnapOptions,
     pub status: u16,
     pub headers: HashMap<String, Header>,
     pub body: Json,
-}
-
-#[derive(Debug, Clone)]
-pub struct SnapOptions {
-    pub include_headers: bool,
 }
 
 #[derive(Debug, Eq, PartialEq)]

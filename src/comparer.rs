@@ -18,11 +18,9 @@ pub fn compare_to_snapshot(snapshot: &Snapshot, response: &SnapResponse) -> bool
         return false;
     }
 
-    if response.options.include_headers {
-        let headers_match = match_headers(&snapshot.headers, &response.headers);
-        if !headers_match {
-            return false;
-        }
+    let headers_match = match_headers(&snapshot.headers, &response.headers);
+    if !headers_match {
+        return false;
     }
 
     let body_match = match_body(&snapshot.body, &response.body);

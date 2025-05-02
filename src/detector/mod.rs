@@ -35,7 +35,6 @@ impl Replacer {
         }
 
         return SnapResponse {
-            options: response.options,
             status: response.status,
             headers: self.detect_in_headers(response.headers),
             body: self.detect_in_json(response.body),

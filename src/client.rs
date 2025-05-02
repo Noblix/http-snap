@@ -1,6 +1,6 @@
 ﻿use crate::types::{Header, HttpFile, HttpVerb, Json};
 use reqwest::header::{HeaderMap, HeaderName};
-use reqwest::Client;
+use reqwest::{Client, Method};
 
 pub struct HttpClient {
     client: Client,
@@ -29,12 +29,17 @@ impl HttpClient {
         let headers = get_headers(&http_file.headers);
         let body = get_json(&http_file.body);
 
+        let url = &http_file.url.to_string();
         let verb_setup = match http_file.verb {
-            HttpVerb::GET => self.client.get(&http_file.url.to_string()),
-            HttpVerb::DELETE => self.client.delete(&http_file.url.to_string()),
-            HttpVerb::PATCH => self.client.patch(&http_file.url.to_string()),
-            HttpVerb::POST => self.client.post(&http_file.url.to_string()),
-            HttpVerb::PUT => self.client.put(&http_file.url.to_string()),
+            HttpVerb::CONNECT => self.client.request(Method::CONNECT, url),
+            HttpVerb::DELETE => self.client.delete(url),
+            HttpVerb::GET => self.client.get(url),
+            HttpVerb::HEAD => self.client.head(url),
+            HttpVerb::OPTIONS => self.client.request(Method::OPTIONS, url),
+            HttpVerb::PATCH => self.client.patch(url),
+            HttpVerb::POST => self.client.post(url),
+            HttpVerb::PUT => self.client.put(url),
+            HttpVerb::TRACE => self.client.request(Method::TRACE, url),
         };
         let response = verb_setup.headers(headers).body(body).send().await?;
 

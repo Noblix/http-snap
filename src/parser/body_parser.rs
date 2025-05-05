@@ -173,28 +173,11 @@ pub(crate) fn characters_parser() -> impl Parser<char, CompositeString, Error = 
         .or(character_parser().map(|c| CompositeStringPart::Literal(c.to_string())))
         .repeated()
         .map(|parts| {
-            let merged_parts = merge_literals(parts);
+            let merged_parts = CompositeStringPart::merge_literals(parts);
             CompositeString {
                 parts: merged_parts,
             }
         });
-}
-
-fn merge_literals(parts: Vec<CompositeStringPart>) -> Vec<CompositeStringPart> {
-    let mut merged = Vec::new();
-    for part in parts {
-        match part {
-            CompositeStringPart::Literal(s) => {
-                if let Some(CompositeStringPart::Literal(last)) = merged.last_mut() {
-                    last.push_str(&s);
-                } else {
-                    merged.push(CompositeStringPart::Literal(s));
-                }
-            }
-            other => merged.push(other),
-        }
-    }
-    return merged;
 }
 
 fn character_parser() -> impl Parser<char, char, Error = Simple<char>> {

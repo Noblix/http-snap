@@ -156,6 +156,25 @@ pub enum CompositeStringPart {
     VariableName(String),
 }
 
+impl CompositeStringPart {
+    pub(crate) fn merge_literals(parts: Vec<CompositeStringPart>) -> Vec<CompositeStringPart> {
+        let mut merged = Vec::new();
+        for part in parts {
+            match part {
+                CompositeStringPart::Literal(s) => {
+                    if let Some(CompositeStringPart::Literal(last)) = merged.last_mut() {
+                        last.push_str(&s);
+                    } else {
+                        merged.push(CompositeStringPart::Literal(s));
+                    }
+                }
+                other => merged.push(other),
+            }
+        }
+        return merged;
+    }
+}
+
 impl Display for CompositeStringPart {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let str = match self {

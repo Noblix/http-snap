@@ -1,5 +1,4 @@
-﻿use crate::parser::body_parser;
-use crate::parser::variable_parser::{variable_store_header_parser};
+﻿use crate::parser::variable_parser::{variable_name_parser, variable_store_header_parser};
 use crate::types::*;
 use chumsky::error::Simple;
 use chumsky::prelude::*;
@@ -67,5 +66,13 @@ fn header_key() -> impl Parser<char, String, Error = Simple<char>> {
 }
 
 fn header_value() -> impl Parser<char, CompositeString, Error = Simple<char>> {
-    return body_parser::characters_parser();
+    return variable_name_parser()
+        .or(filter(|c: &char| *c != '\n').map(|c| CompositeStringPart::Literal(c.to_string())))
+        .repeated()
+        .map(|parts| {
+            let merged_parts = CompositeStringPart::merge_literals(parts);
+            CompositeString {
+                parts: merged_parts,
+            }
+        });
 }

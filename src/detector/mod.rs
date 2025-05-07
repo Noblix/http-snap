@@ -59,10 +59,13 @@ impl Replacer {
         return header.clone();
     }
 
-    fn detect_in_json(&self, json: Json) -> Json {
-        return Json {
-            element: self.detect_in_element(json.element),
-        };
+    fn detect_in_json(&self, json: Option<Json>) -> Option<Json> {
+        if let Some(json) = json {
+            return Some(Json {
+                element: self.detect_in_element(json.element),
+            });
+        }
+        return None;
     }
 
     fn detect_in_element(&self, element: Element) -> Element {

@@ -92,8 +92,12 @@ fn match_headers(
     return true;
 }
 
-fn match_body(snapshot_body: &Json, response_body: &Json) -> bool {
-    return match_body_element(&snapshot_body.element, &response_body.element);
+fn match_body(snapshot_body: &Option<Json>, response_body: &Option<Json>) -> bool {
+    return match (snapshot_body, response_body) {
+        (None, None) => true,
+        (Some(snapshot), Some(response)) => match_body_element(&snapshot.element, &response.element),
+        _ => false
+    };
 }
 
 fn match_body_element(expected: &Element, actual: &Element) -> bool {

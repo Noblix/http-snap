@@ -71,7 +71,7 @@ pub struct HttpFile {
     pub verb: HttpVerb,
     pub url: CompositeString,
     pub headers: Vec<Header>,
-    pub body: Json,
+    pub body: Option<Json>,
     pub snapshots: Vec<Snapshot>,
 }
 
@@ -90,7 +90,7 @@ pub enum Generator {
 pub struct Snapshot {
     pub status: Number,
     pub headers: Vec<Header>,
-    pub body: Json,
+    pub body: Option<Json>,
 }
 
 #[derive(Debug, Clone)]
@@ -105,7 +105,7 @@ pub enum Comparison {
 pub struct SnapResponse {
     pub status: u16,
     pub headers: HashMap<String, Header>,
-    pub body: Json,
+    pub body: Option<Json>,
 }
 
 #[derive(Debug, Eq, PartialEq)]

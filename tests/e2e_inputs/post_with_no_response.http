@@ -1,0 +1,7 @@
+POST {{test_host}}/activate
+
+SNAPSHOT
+status: 200
+
+content-length: 0
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z"):"Wed, 07 May 2025 19:41:00 GMT"}}

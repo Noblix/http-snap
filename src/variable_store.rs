@@ -18,7 +18,11 @@ impl VariableStore {
 
     pub(crate) fn update_variables(&mut self, snapshot: &Snapshot, response: &SnapResponse) {
         self.extract_variables_from_headers(&snapshot.headers, &response.headers);
-        self.extract_variables_from_body(&snapshot.body.element, &response.body.element);
+        if let Some(snapshot_body) = &snapshot.body {
+            if let Some(response_body) = &response.body {
+                self.extract_variables_from_body(&snapshot_body.element, &response_body.element);
+            }
+        }
     }
 
     fn extract_variables_from_headers(
@@ -125,14 +129,18 @@ impl VariableStore {
         panic!("Variable named \"{}\" was not found!", name);
     }
 
-    fn replace_in_body(&self, body: &Json) -> Json {
-        return Json {
-            element: Element {
-                value: self.replace_in_value(&body.element.value),
-                variable_store: body.element.variable_store.clone(),
-                comparison: body.element.comparison.clone(),
-            },
-        };
+    fn replace_in_body(&self, body: &Option<Json>) -> Option<Json> {
+        if let Some(json) = body {
+            return Some(Json {
+                element: Element {
+                    value: self.replace_in_value(&json.element.value),
+                    variable_store: json.element.variable_store.clone(),
+                    comparison: json.element.comparison.clone(),
+                },
+            });
+        }
+
+        return None;
     }
 
     fn replace_in_composite_string(&self, url: &CompositeString) -> CompositeString {

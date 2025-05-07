@@ -96,8 +96,11 @@ fn format_header(header: &Header) -> String {
     return format!("{}: {}", header.name, formatted);
 }
 
-fn format_body(body: &Json) -> String {
-    return format_element(&body.element, 0);
+fn format_body(body: &Option<Json>) -> String {
+    return match body { 
+        Some(json) => format_element(&json.element, 0),
+        None => String::new()
+    };
 }
 
 fn format_element(element: &Element, indent: usize) -> String {

@@ -9,20 +9,10 @@ use chumsky::Parser;
 use std::rc::Rc;
 
 // Based on https://www.json.org/json-en.html
-pub(crate) fn body_parser(comparison: bool) -> impl Parser<char, Json, Error = Simple<char>> {
-    let no_body = empty().map(move |_| Json {
-        element: Element {
-            value: Value::Null(),
-            comparison: if comparison.clone() {
-                Some(Comparison::Exact)
-            } else {
-                None
-            },
-            variable_store: None,
-        },
-    });
+pub(crate) fn body_parser(comparison: bool) -> impl Parser<char, Option<Json>, Error = Simple<char>> {
+    let no_body = empty().map(|_| None);
 
-    return json_parser(comparison).or(no_body);
+    return json_parser(comparison).map(|body| Some(body)).or(no_body);
 }
 
 fn json_parser(comparison: bool) -> impl Parser<char, Json, Error = Simple<char>> {

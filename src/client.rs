@@ -65,6 +65,6 @@ fn get_headers(request_headers: &Vec<Header>) -> HeaderMap {
     return headers;
 }
 
-fn get_json(body: &Json) -> String {
+fn get_json(body: &Option<Json>) -> String {
     return serde_json::to_string(body).unwrap();
 }

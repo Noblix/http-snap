@@ -32,6 +32,29 @@ async fn send_get_with_no_body() {
 }
 
 #[tokio::test]
+async fn post_with_no_response() {
+    common::init_logger();
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/activate"))
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&server)
+        .await;
+
+    let mut path = PathBuf::new();
+    path.push("tests/e2e_inputs/post_with_no_response.http");
+    let result = run(
+        &path,
+        &common::create_environment_variables(&server),
+        &ExecuteOptions::new_test(),
+    )
+        .await
+        .unwrap();
+
+    assert_eq!(result, true);
+}
+
+#[tokio::test]
 async fn compare_timestamp_formats() {
     common::init_logger();
     let server = MockServer::start().await;

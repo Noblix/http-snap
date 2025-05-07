@@ -1,4 +1,4 @@
-﻿use crate::parser::body_parser::{element_parser, value_parser};
+﻿use crate::parser::body_parser::{characters_parser, element_parser, value_parser};
 use crate::parser::snapshot_parser::{
     guid_format_parser, ignore_comparison_parser, timestamp_format_parser,
 };
@@ -7,7 +7,7 @@ use crate::types::{
 };
 use chumsky::error::Simple;
 use chumsky::prelude::*;
-use chumsky::text::{Character};
+use chumsky::text::Character;
 use chumsky::Parser;
 use std::collections::HashMap;
 
@@ -49,11 +49,22 @@ pub(crate) fn variable_store_header_parser(
                 guid_format_parser(),
                 ignore_comparison_parser(),
             )))
+            .then(
+                just(":")
+                    .ignore_then(
+                        repeated_spaces()
+                            .ignore_then(characters_parser().delimited_by(just("\""), just("\""))),
+                    )
+                    .or_not(),
+            )
             .then_ignore(repeated_spaces().then(just("}}")))
-            .map(|(variable_store, comparison)| {
+            .map(|((variable_store, comparison), value)| {
                 (
                     variable_store,
-                    (CompositeString::new(Vec::new()), Some(comparison)),
+                    (
+                        value.unwrap_or(CompositeString::new(Vec::new())),
+                        Some(comparison),
+                    ),
                 )
             }),
     );
@@ -68,12 +79,18 @@ pub(crate) fn variable_store_body_parser(
             .or(just("_").to(None))
             .then_ignore(just(":").padded())
             .then(
-                (choice((
+                choice((
                     timestamp_format_parser(),
                     guid_format_parser(),
                     ignore_comparison_parser(),
                 ))
-                .map(|comparison| (Value::Null(), comparison)))
+                .then(
+                    just(":")
+                        .padded()
+                        .ignore_then(value_parser(element_parser.clone()))
+                        .or_not(),
+                )
+                .map(|(comparison, value)| (value.unwrap_or(Value::Null()), comparison))
                 .or(value_parser(element_parser).map(|value| (value, Comparison::Exact))),
             )
             .then_ignore(just("}}").padded())

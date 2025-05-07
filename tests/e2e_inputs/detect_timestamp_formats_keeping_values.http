@@ -1,0 +1,16 @@
+GET {{test_host}}/times
+Accept: application/json
+
+SNAPSHOT
+status: 200
+
+content-length: 167
+content-type: application/json
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z"):"Wed, 07 May 2025 13:44:52 GMT"}}
+
+{
+  "12‑Hour-Format": {{_:timestamp("%m/%d/%Y %I:%M:%S %p"):"03/25/2025 02:54:09 PM"}},
+  "ISO-8601-Basic": {{_:timestamp("%Y%m%dT%H%M%SZ"):"20250325T144509Z"}},
+  "ISO-8601-Extended": {{_:timestamp("%Y-%m-%dT%H:%M:%SZ"):"2025-03-25T14:54:09Z"}},
+  "RFC-2822": {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z"):"Tue, 25 Mar 2025 14:54:09 GMT"}}
+}

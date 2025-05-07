@@ -40,7 +40,7 @@ pub fn merge_snapshots_into_files(
         .write(true)
         .truncate(true)
         .open(path_to_file)?;
-    
+
     if !imported.is_empty() {
         file.write_all(imported.as_bytes())
             .expect("Unable to write imports");
@@ -91,8 +91,8 @@ fn format_snapshot(response: &SnapResponse) -> String {
 }
 
 fn format_header(header: &Header) -> String {
-    let formatted =
-        format_comparison(&header.comparison).unwrap_or_else(|| header.value.to_string());
+    let formatted = format_comparison(&header.comparison, &Value::from(header.value.to_string()))
+        .unwrap_or_else(|| header.value.to_string());
     return format!("{}: {}", header.name, formatted);
 }
 
@@ -101,17 +101,18 @@ fn format_body(body: &Json) -> String {
 }
 
 fn format_element(element: &Element, indent: usize) -> String {
-    return format_comparison(&element.comparison)
+    return format_comparison(&element.comparison, &element.value)
         .unwrap_or_else(|| format_value(&element.value, indent));
 }
 
-fn format_comparison(comparison: &Option<Comparison>) -> Option<String> {
+fn format_comparison(comparison: &Option<Comparison>, value: &Value) -> Option<String> {
     return match comparison {
-        Some(Comparison::Ignore) => Some("{{_:_}}".to_string()),
-        Some(Comparison::TimestampFormat(pattern)) => {
-            Some(format!("{{{{_:timestamp(\"{pattern}\")}}}}"))
-        }
-        Some(Comparison::Guid) => Some("{{_:guid}}".to_string()),
+        Some(Comparison::Ignore) => Some(format!("{{{{_:_}}}}")),
+        Some(Comparison::TimestampFormat(pattern)) => Some(format!(
+            "{{{{_:timestamp(\"{pattern}\"):{}}}}}",
+            format_value(value, 0)
+        )),
+        Some(Comparison::Guid) => Some(format!("{{{{_:guid:{}}}}}", format_value(value, 0))),
         _ => None,
     };
 }

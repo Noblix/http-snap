@@ -48,8 +48,8 @@ async fn post_with_no_response() {
         &common::create_environment_variables(&server),
         &ExecuteOptions::new_test(),
     )
-        .await
-        .unwrap();
+    .await
+    .unwrap();
 
     assert_eq!(result, true);
 }
@@ -132,8 +132,8 @@ async fn detect_timestamp_formats_keeping_values() {
         &common::create_environment_variables(&server),
         &ExecuteOptions::new_update(true, UpdateMode::Overwrite, &[Detector::Timestamp]),
     )
-        .await
-        .unwrap();
+    .await
+    .unwrap();
 
     assert_eq!(result, true);
 }
@@ -218,7 +218,11 @@ async fn detect_guid_and_timestamp() {
     let result = run(
         &path,
         &common::create_environment_variables(&server),
-        &ExecuteOptions::new_update(true, UpdateMode::Overwrite, &[Detector::Guid, Detector::Timestamp]),
+        &ExecuteOptions::new_update(
+            true,
+            UpdateMode::Overwrite,
+            &[Detector::Guid, Detector::Timestamp],
+        ),
     )
     .await
     .unwrap();
@@ -248,8 +252,8 @@ async fn import_and_use_variable() {
         &common::create_environment_variables(&server),
         &ExecuteOptions::new_test(),
     )
-        .await
-        .unwrap();
+    .await
+    .unwrap();
 
     assert_eq!(result, true);
 }
@@ -281,7 +285,7 @@ async fn writing_snapshot() {
           },
           "arrayOfObjects": [
             {
-              "a": 1,
+              "a": 1.0,
               "b": 2
             },
             {
@@ -317,7 +321,7 @@ async fn writing_snapshot() {
     let result = run(
         &path,
         &common::create_environment_variables(&server),
-        &ExecuteOptions::new_update(true, UpdateMode::Overwrite, &[]),
+        &ExecuteOptions::new_update(true, UpdateMode::Overwrite, &[Detector::Timestamp]),
     )
     .await
     .unwrap();

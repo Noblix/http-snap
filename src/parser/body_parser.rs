@@ -4,7 +4,7 @@
 use crate::types::*;
 use chumsky::error::Simple;
 use chumsky::prelude::*;
-use chumsky::text::{int, whitespace};
+use chumsky::text::{digits, int, whitespace};
 use chumsky::Parser;
 use std::rc::Rc;
 
@@ -221,9 +221,9 @@ fn integer_parser() -> impl Parser<char, Number, Error = Simple<char>> {
 fn fraction_parser() -> impl Parser<char, Number, Error = Simple<char>> {
     let positive = int(10)
         .then_ignore(just("."))
-        .then(int(10))
-        .map(|(whole, frac): (String, String)| format!("{whole}.{frac}").parse::<f64>().unwrap());
-    let negative = just("-").ignore_then(positive).map(|num| -num);
+        .then(digits(10))
+        .map(|(whole, frac): (String, String)| format!("{whole}.{frac}"));
+    let negative = just("-").ignore_then(positive).map(|num| format!("-{num}"));
     return positive.or(negative).map(|num| Number::Fraction(num));
 }
 

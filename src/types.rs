@@ -1,5 +1,6 @@
 ﻿use serde::ser::{SerializeMap, SerializeSeq, Serializer};
 use serde::Serialize;
+use serde_json::value::RawValue;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
@@ -193,7 +194,7 @@ pub struct Header {
     pub comparison: Option<Comparison>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Json {
     pub element: Element,
 }
@@ -322,7 +323,7 @@ impl Serialize for Array {
 #[derive(Debug, Clone)]
 pub enum Number {
     Int(i64),
-    Fraction(f64),
+    Fraction(String),
     Exponent(String),
 }
 
@@ -333,8 +334,14 @@ impl Serialize for Number {
     {
         match self {
             Number::Int(val) => serializer.serialize_i64(val.clone()),
-            Number::Fraction(val) => serializer.serialize_f64(val.clone()),
-            Number::Exponent(val) => serializer.serialize_f64(val.parse::<f64>().unwrap()),
+            Number::Fraction(val) => {
+                let raw = RawValue::from_string(val.into()).map_err(serde::ser::Error::custom)?;
+                raw.serialize(serializer)
+            }
+            Number::Exponent(val) => {
+                let raw = RawValue::from_string(val.into()).map_err(serde::ser::Error::custom)?;
+                raw.serialize(serializer)
+            },
         }
     }
 }
@@ -343,7 +350,7 @@ impl Display for Number {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
             Number::Int(val) => val.to_string(),
-            Number::Fraction(val) => val.to_string(),
+            Number::Fraction(val) => val.clone(),
             Number::Exponent(val) => val.clone(),
         };
         write!(f, "{}", str)

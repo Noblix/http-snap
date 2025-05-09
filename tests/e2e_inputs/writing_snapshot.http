@@ -4,15 +4,15 @@ Accept: application/json
 SNAPSHOT
 status: 200
 
-content-length: 417
+content-length: 419
 content-type: application/json
-date: {{_:_}}
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
 
 {
   "active": true,
   "arrayOfObjects": [
     {
-      "a": 1,
+      "a": 1.0,
       "b": 2
     },
     {

@@ -7,7 +7,7 @@ edition = "2021"
 chumsky = "0.9.3"
 reqwest = { version = "0.12", features = ["json", "cookies"] }
 tokio = { version = "1", features = ["full"] }
-serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
+serde_json = { version = "1.0", default-features = false, features = ["alloc", "raw_value"] }
 serde = { version = "1.0.217", features = ["derive"] }
 indoc = "2.0.5"
 clap = { version = "4.5.31", features = ["derive"] }

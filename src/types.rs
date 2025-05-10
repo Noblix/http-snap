@@ -76,6 +76,11 @@ pub struct HttpFile {
     pub snapshots: Vec<Snapshot>,
 }
 
+pub struct ExecutedRequest {
+    pub raw_input: RawInput,
+    pub snapshot: Option<SnapResponse>,
+}
+
 #[derive(Debug)]
 pub enum Variable {
     Value(Value),

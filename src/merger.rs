@@ -54,7 +54,7 @@ pub fn merge_snapshots_into_files(
     return Ok(());
 }
 
-fn create_content_with_snapshot(
+pub fn create_content_with_snapshot(
     raw_text: &str,
     response: &SnapResponse,
     update_mode: &UpdateMode,

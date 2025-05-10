@@ -1,9 +1,10 @@
 ﻿use crate::client::HttpResponse;
-use crate::types::{ExecuteOptions, HttpFile, Mode, RawInput, UpdateMode, UpdateOptions};
+use crate::types::{ExecuteOptions, ExecutedRequest, HttpFile, RawInput, UpdateOptions};
 use itertools::Itertools;
 use serde_json::Value;
 use std::collections::HashMap;
-use std::fs::read_to_string;
+use std::fs::{read_to_string, File};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 pub mod client;
@@ -20,16 +21,60 @@ pub async fn run(
     environment_variables: &HashMap<String, types::Value>,
     execute_options: &ExecuteOptions,
 ) -> Result<bool, Box<dyn std::error::Error>> {
-    let request_texts = extract_requests(path_to_file);
+    if path_to_file.extension().unwrap() == "http" {
+        let (passed, file_content) = handle_http_file(path_to_file, environment_variables, execute_options).await?;
+        if !passed {
+            let mut file = File::options()
+                .write(true)
+                .truncate(true)
+                .open(path_to_file)?;
+
+            file.write_all(&file_content.as_bytes())
+                .expect("Unable to write snapshot");
+            file.flush()?;
+        }
+        return Ok(passed);
+    } else {
+        panic!("Unknown file format")
+    }
+}
+
+async fn handle_http_file(
+    path_to_file: &PathBuf,
+    environment_variables: &HashMap<String, types::Value>,
+    execute_options: &ExecuteOptions,
+) -> Result<(bool, String), Box<dyn std::error::Error>> {
+    let requests = extract_requests(path_to_file);
+    let stop_on_failure = if let Some(update_options) = &execute_options.update_options {
+        update_options.stop_on_failure
+    } else {
+        true
+    };
+    let (passed, raw_snapshots) = run_requests(requests, environment_variables, stop_on_failure).await?;
+    let final_snapshots = detect_patterns(raw_snapshots, &execute_options.update_options);
+    let file_content = create_http_content(final_snapshots, &execute_options.update_options);
+    return Ok((passed, file_content));
+}
+
+async fn run_requests(
+    inputs: Vec<RawInput>,
+    environment_variables: &HashMap<String, types::Value>,
+    stop_on_failure: bool,
+) -> Result<(bool, Vec<ExecutedRequest>), Box<dyn std::error::Error>> {
+    let mut passed = true;
+    let mut executed_requests = Vec::new();
+    for input in &inputs {
+        executed_requests.push(ExecutedRequest {
+            raw_input: input.clone(),
+            snapshot: None,
+        });
+    }
 
     let mut variable_store = variable_store::VariableStore::new();
     variable_store.extend_variables(&environment_variables);
 
     let client = client::HttpClient::new();
-    let replacer = detector::Replacer::new(&execute_options.update_options);
-    let mut passed = true;
-    let mut updated_snapshots = Vec::new();
-    for (index, request) in request_texts.clone().iter().enumerate() {
+    for (index, request) in inputs.into_iter().enumerate() {
         let http_file = parser::parse_file(&request.text).unwrap();
         let http_file_without_variables = variable_store.replace_variables(http_file);
         log_variable_store(&variable_store);
@@ -44,11 +89,7 @@ pub async fn run(
         for (option_index, snapshot) in http_file_without_variables.snapshots.iter().enumerate() {
             matched_option = comparer::compare_to_snapshot(&snapshot, &parsed_response);
             if matched_option {
-                log::debug!(
-                    "Snapshot {0} matches on option {1}",
-                    index + 1,
-                    option_index + 1
-                );
+                log_option_match(index, option_index);
                 variable_store.update_variables(&snapshot, &parsed_response);
                 break;
             }
@@ -56,39 +97,70 @@ pub async fn run(
 
         if !matched_option {
             passed = false;
-
-            let new_snapshot = replacer.detect_types(parsed_response);
-            updated_snapshots.push((index, new_snapshot));
-
             log::error!("Snapshot {0} did NOT match", index + 1);
-
-            if matches!(
-                &execute_options.update_options,
-                Some(UpdateOptions {
-                    stop_on_failure: true,
-                    ..
-                })
-            ) {
+            executed_requests[index].snapshot = Some(parsed_response);
+            if stop_on_failure {
                 break;
             }
         }
     }
 
-    if &execute_options.mode == &Mode::Update && !passed {
-        let update_mode = if let Some(mode) = &execute_options.update_options {
-            &mode.update_mode
+    return Ok((passed, executed_requests));
+}
+
+fn detect_patterns(
+    executed_requests: Vec<ExecutedRequest>,
+    update_options: &Option<UpdateOptions>,
+) -> Vec<ExecutedRequest> {
+    let replacer = detector::Replacer::new(update_options);
+    let mut final_executed_requests = Vec::new();
+
+    for executed_request in executed_requests {
+        if let Some(snapshot) = executed_request.snapshot {
+            let new_snapshot = replacer.detect_types(snapshot);
+            final_executed_requests.push(ExecutedRequest {
+                raw_input: executed_request.raw_input,
+                snapshot: Some(new_snapshot),
+            });
         } else {
-            &UpdateMode::Overwrite
-        };
-        merger::merge_snapshots_into_files(
-            path_to_file,
-            &request_texts,
-            updated_snapshots,
-            &update_mode,
-        )?;
+            final_executed_requests.push(executed_request);
+        }
+    }
+    return final_executed_requests;
+}
+
+fn create_http_content(executed_requests: Vec<ExecutedRequest>, update_options: &Option<UpdateOptions>) -> String {
+    let mut imports = Vec::new();
+    let mut merged = Vec::new();
+    for executed_request in executed_requests {
+        if let Some(import_path) = executed_request.raw_input.imported_path {
+            imports.push(format!("import {}", import_path.display()));
+            continue;
+        }
+        if let Some(snapshot) = executed_request.snapshot {
+            if let Some(options) = update_options {
+                let snapshot_as_str = merger::create_content_with_snapshot(
+                    &executed_request.raw_input.text,
+                    &snapshot,
+                    &options.update_mode,
+                );
+                merged.push(snapshot_as_str);
+            }
+
+        } else {
+            merged.push(executed_request.raw_input.text);
+        }
     }
 
-    return Ok(passed);
+    let mut result = String::new();
+    if !imports.is_empty() {
+        result.push_str(&imports.join("\n"));
+        result.push_str("\n\n");
+    }
+
+    result.push_str(&merged.join("\n\n###\n\n"));
+
+    return result;
 }
 
 fn extract_requests(path_to_file: &PathBuf) -> Vec<RawInput> {
@@ -186,4 +258,12 @@ fn log_response(response: &HttpResponse) {
     );
 
     log::debug!("{}", log_message);
+}
+
+fn log_option_match(index: usize, option_index: usize) {
+    log::debug!(
+        "Snapshot {0} matches on option {1}",
+        index + 1,
+        option_index + 1
+    );
 }

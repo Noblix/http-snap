@@ -1,17 +1,20 @@
 ﻿use crate::client::HttpResponse;
 use crate::types::{ExecuteOptions, ExecutedRequest, HttpFile, RawInput, UpdateOptions};
 use itertools::Itertools;
+use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fs::{read_to_string, File};
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+use pulldown_cmark_to_cmark::cmark;
 
 pub mod client;
 pub mod comparer;
 pub mod detector;
 pub mod merger;
 pub mod parser;
+pub mod request_extractor;
 pub mod types;
 pub mod variable_generator;
 pub mod variable_store;
@@ -21,8 +24,10 @@ pub async fn run(
     environment_variables: &HashMap<String, types::Value>,
     execute_options: &ExecuteOptions,
 ) -> Result<bool, Box<dyn std::error::Error>> {
-    if path_to_file.extension().unwrap() == "http" {
-        let (passed, file_content) = handle_http_file(path_to_file, environment_variables, execute_options).await?;
+    let extension = path_to_file.extension().unwrap();
+    if extension == "http" {
+        let (passed, file_content) =
+            handle_http_file(path_to_file, environment_variables, execute_options).await?;
         if !passed {
             let mut file = File::options()
                 .write(true)
@@ -34,9 +39,83 @@ pub async fn run(
             file.flush()?;
         }
         return Ok(passed);
+    } else if extension == "md" {
+        let (passed, sections_content) =
+            handle_markdown_file(path_to_file, environment_variables, execute_options).await?;
+        if !passed {
+            let raw_input = read_to_string(path_to_file).unwrap();
+            let parser = Parser::new(&raw_input);
+
+            let mut index = 0;
+            let mut replaced = false;
+            let mut in_http = false;
+            let mapped = parser.map(|event| {
+                match event {
+                    Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang)))
+                        if lang.eq_ignore_ascii_case("http") =>
+                    {
+                        in_http = true;
+                        replaced = false;
+                        Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang)))
+                    }
+                    Event::End(TagEnd::CodeBlock) => {
+                        in_http = false;
+                        event
+                    }
+                    Event::Text(_) if in_http => {
+                        if !replaced {
+                            let updated = sections_content[index].clone();
+                            index += 1;
+                            replaced = true;
+                            Event::Text(updated.into())
+                        } else {
+                            Event::Text("".into())
+                        }
+                    }
+                    other => other,
+                }
+            });
+            let mut content = String::new();
+            cmark(mapped, &mut content).expect("Markdown re-emit failed");
+            
+            let mut file = File::options()
+                .write(true)
+                .truncate(true)
+                .open(path_to_file)?;
+
+            file.write_all(&content.as_bytes())
+                .expect("Unable to write snapshot");
+            file.flush()?;
+        }
+        return Ok(passed);
     } else {
         panic!("Unknown file format")
     }
+}
+
+async fn handle_markdown_file(
+    path_to_file: &PathBuf,
+    environment_variables: &HashMap<String, types::Value>,
+    execute_options: &ExecuteOptions,
+) -> Result<(bool, Vec<String>), Box<dyn std::error::Error>> {
+    let requests = request_extractor::extract_requests(path_to_file);
+    let stop_on_failure = if let Some(update_options) = &execute_options.update_options {
+        update_options.stop_on_failure
+    } else {
+        true
+    };
+    let (passed, raw_snapshots) =
+        run_requests(requests, environment_variables, stop_on_failure).await?;
+    let final_snapshots = detect_patterns(raw_snapshots, &execute_options.update_options);
+    let sections = final_snapshots
+        .into_iter()
+        .into_group_map_by(|i| i.raw_input.section);
+    
+    let mut sections_content = Vec::new();
+    for key in sections.keys().sorted() {
+        sections_content.push(create_http_content(&sections[key], &execute_options.update_options))
+    }
+    return Ok((passed, sections_content));
 }
 
 async fn handle_http_file(
@@ -44,15 +123,16 @@ async fn handle_http_file(
     environment_variables: &HashMap<String, types::Value>,
     execute_options: &ExecuteOptions,
 ) -> Result<(bool, String), Box<dyn std::error::Error>> {
-    let requests = extract_requests(path_to_file);
+    let requests = request_extractor::extract_requests(path_to_file);
     let stop_on_failure = if let Some(update_options) = &execute_options.update_options {
         update_options.stop_on_failure
     } else {
         true
     };
-    let (passed, raw_snapshots) = run_requests(requests, environment_variables, stop_on_failure).await?;
+    let (passed, raw_snapshots) =
+        run_requests(requests, environment_variables, stop_on_failure).await?;
     let final_snapshots = detect_patterns(raw_snapshots, &execute_options.update_options);
-    let file_content = create_http_content(final_snapshots, &execute_options.update_options);
+    let file_content = create_http_content(&final_snapshots, &execute_options.update_options);
     return Ok((passed, file_content));
 }
 
@@ -129,15 +209,18 @@ fn detect_patterns(
     return final_executed_requests;
 }
 
-fn create_http_content(executed_requests: Vec<ExecutedRequest>, update_options: &Option<UpdateOptions>) -> String {
+fn create_http_content(
+    executed_requests: &Vec<ExecutedRequest>,
+    update_options: &Option<UpdateOptions>,
+) -> String {
     let mut imports = Vec::new();
     let mut merged = Vec::new();
     for executed_request in executed_requests {
-        if let Some(import_path) = executed_request.raw_input.imported_path {
+        if let Some(import_path) = &executed_request.raw_input.imported_path {
             imports.push(format!("import {}", import_path.display()));
             continue;
         }
-        if let Some(snapshot) = executed_request.snapshot {
+        if let Some(snapshot) = &executed_request.snapshot {
             if let Some(options) = update_options {
                 let snapshot_as_str = merger::create_content_with_snapshot(
                     &executed_request.raw_input.text,
@@ -146,9 +229,8 @@ fn create_http_content(executed_requests: Vec<ExecutedRequest>, update_options: 
                 );
                 merged.push(snapshot_as_str);
             }
-
         } else {
-            merged.push(executed_request.raw_input.text);
+            merged.push(executed_request.raw_input.text.clone());
         }
     }
 
@@ -161,51 +243,6 @@ fn create_http_content(executed_requests: Vec<ExecutedRequest>, update_options: 
     result.push_str(&merged.join("\n\n###\n\n"));
 
     return result;
-}
-
-fn extract_requests(path_to_file: &PathBuf) -> Vec<RawInput> {
-    let raw_text = read_to_string(path_to_file).unwrap();
-    let text = raw_text.trim_start_matches("\u{feff}");
-    let mut request_texts = Vec::new();
-
-    let (files_to_import, text_without_imports) = extract_imports(text);
-    for file in files_to_import {
-        let base_dir = path_to_file.parent().unwrap_or_else(|| Path::new(""));
-        let full_path = base_dir.join(&file);
-
-        let imported_requests = extract_requests(&full_path);
-
-        for request in imported_requests {
-            request_texts.push(RawInput {
-                text: request.text,
-                imported_path: Some(PathBuf::from(&file)),
-            })
-        }
-    }
-
-    for request in text_without_imports.split("###") {
-        request_texts.push(RawInput {
-            text: request.trim().to_string(),
-            imported_path: None,
-        })
-    }
-    return request_texts;
-}
-
-fn extract_imports(text: &str) -> (Vec<String>, String) {
-    let mut imports = Vec::new();
-    let mut index = 0;
-    for line in text.lines() {
-        let trimmed = line.trim();
-        if let Some(path) = trimmed.strip_prefix("import ") {
-            imports.push(path.to_string());
-        } else if !trimmed.is_empty() {
-            // once we hit a non-import, non-blank line, stop
-            break;
-        }
-        index += 1;
-    }
-    return (imports, text.lines().skip(index).join("\n"));
 }
 
 fn log_variable_store(variable_store: &variable_store::VariableStore) {

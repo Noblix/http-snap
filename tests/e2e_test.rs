@@ -328,3 +328,63 @@ async fn writing_snapshot() {
 
     assert_eq!(result, true);
 }
+
+#[tokio::test]
+async fn markdown_with_single_section() {
+    common::init_logger();
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/no-body"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"hello": "world"})))
+        .mount(&server)
+        .await;
+
+    let mut path = PathBuf::new();
+    path.push("tests/e2e_inputs/simple_markdown.md");
+    let result = run(
+        &path,
+        &common::create_environment_variables(&server),
+        &ExecuteOptions::new_update(
+            true,
+            UpdateMode::Overwrite,
+            &[Detector::Timestamp, Detector::Timestamp],
+        ),
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(result, true);
+}
+
+#[tokio::test]
+async fn markdown_with_multiple_sections() {
+    common::init_logger();
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path_regex(r"^/items/[0-9]+$"))
+        .respond_with(|req: &Request| {
+            let id = req.url.path().rsplit('/').next().unwrap_or("unknown");
+            ResponseTemplate::new(200).set_body_json(json!({
+                "id": id,
+                "name": format!("Echo {}", id)
+            }))
+        })
+        .mount(&server)
+        .await;
+
+    let mut path = PathBuf::new();
+    path.push("tests/e2e_inputs/markdown_with_multiple_sections.md");
+    let result = run(
+        &path,
+        &common::create_environment_variables(&server),
+        &ExecuteOptions::new_update(
+            true,
+            UpdateMode::Overwrite,
+            &[Detector::Timestamp, Detector::Timestamp],
+        ),
+    )
+        .await
+        .unwrap();
+
+    assert_eq!(result, true);
+}

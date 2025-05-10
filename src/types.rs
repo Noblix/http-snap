@@ -63,6 +63,7 @@ pub enum Detector {
 #[derive(Debug, Clone)]
 pub struct RawInput {
     pub text: String,
+    pub section: usize,
     pub imported_path: Option<PathBuf>,
 }
 

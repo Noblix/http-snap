@@ -98,7 +98,7 @@ impl VariableStore {
         }
     }
 
-    fn replace_in_headers(&mut self, headers: &Vec<Header>) -> Vec<Header> {
+    fn replace_in_headers(&self, headers: &Vec<Header>) -> Vec<Header> {
         let mut result = Vec::new();
         for header in headers {
             result.push(Header {
@@ -214,10 +214,11 @@ impl VariableStore {
     fn replace_in_snapshots(&self, snapshots: Vec<Snapshot>) -> Vec<Snapshot> {
         let mut result = Vec::new();
         for snapshot in snapshots {
+            let headers = self.replace_in_headers(&snapshot.headers);
             let body = self.replace_in_body(&snapshot.body);
             result.push(Snapshot {
                 status: snapshot.status,
-                headers: snapshot.headers,
+                headers,
                 body,
             });
         }

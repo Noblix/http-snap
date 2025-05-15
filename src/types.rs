@@ -95,9 +95,15 @@ pub enum Generator {
 
 #[derive(Debug)]
 pub struct Snapshot {
-    pub status: Number,
+    pub status: Status,
     pub headers: Vec<Header>,
     pub body: Option<Json>,
+}
+
+#[derive(Debug)]
+pub enum Status {
+    Value(Number),
+    Pattern(String)
 }
 
 #[derive(Debug, Clone)]

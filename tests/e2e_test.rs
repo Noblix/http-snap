@@ -388,3 +388,26 @@ async fn markdown_with_multiple_sections() {
 
     assert_eq!(result, true);
 }
+
+#[tokio::test]
+async fn status_pattern() {
+    common::init_logger();
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/good_status"))
+        .respond_with(ResponseTemplate::new(201))
+        .mount(&server)
+        .await;
+
+    let mut path = PathBuf::new();
+    path.push("tests/e2e_inputs/status_pattern.http");
+    let result = run(
+        &path,
+        &common::create_environment_variables(&server),
+        &ExecuteOptions::new_test(),
+    )
+        .await
+        .unwrap();
+
+    assert_eq!(result, true);
+}

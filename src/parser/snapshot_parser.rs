@@ -1,6 +1,6 @@
 ﻿use crate::parser::body_parser::{body_parser, characters_parser};
 use crate::parser::header_parser::headers_parser;
-use crate::types::{Comparison, Number, Snapshot};
+use crate::types::{Comparison, Number, Snapshot, Status};
 use chumsky::error::Simple;
 use chumsky::prelude::*;
 use chumsky::text::whitespace;
@@ -52,10 +52,19 @@ pub(crate) fn guid_format_parser() -> impl Parser<char, Comparison, Error = Simp
         .to(Comparison::Guid);
 }
 
-fn status_parser() -> impl Parser<char, Number, Error = Simple<char>> {
-    return just("status: ")
-        .ignore_then(one_of("0123456789").repeated().exactly(3))
-        .map(|code: Vec<char>| {
-            Number::Int(code.into_iter().collect::<String>().parse::<i64>().unwrap())
-        });
+fn status_parser() -> impl Parser<char, Status, Error = Simple<char>> {
+    return just("status: ").ignore_then(choice((
+        one_of("0123456789")
+            .repeated()
+            .exactly(3)
+            .map(|code: Vec<char>| {
+                Status::Value(Number::Int(
+                    code.into_iter().collect::<String>().parse::<i64>().unwrap(),
+                ))
+            }),
+        one_of("0123456789xX")
+            .repeated()
+            .exactly(3)
+            .map(|code: Vec<char>| Status::Pattern(code.into_iter().collect::<String>())),
+    )));
 }

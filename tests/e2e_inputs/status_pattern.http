@@ -1,0 +1,42 @@
+GET {{test_host}}/good_status
+Accept: application/json
+
+SNAPSHOT
+status: 201
+
+content-length: 0
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z"):"Thu, 15 May 2025 10:56:16 GMT"}}
+
+###
+
+GET {{test_host}}/good_status
+Accept: application/json
+
+SNAPSHOT
+status: 20x
+
+content-length: 0
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z"):"Thu, 15 May 2025 10:56:23 GMT"}}
+
+###
+
+GET {{test_host}}/good_status
+Accept: application/json
+
+SNAPSHOT
+status: 2xx
+
+content-length: 0
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z"):"Thu, 15 May 2025 10:56:35 GMT"}}
+
+###
+
+GET {{test_host}}/good_status
+Accept: application/json
+
+SNAPSHOT
+status: xxx
+
+content-length: 0
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z"):"Thu, 15 May 2025 10:56:40 GMT"}}
+

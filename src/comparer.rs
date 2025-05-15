@@ -1,9 +1,9 @@
-﻿use std::collections::HashMap;
-use crate::types::{
+﻿use crate::types::{
     Array, Comparison, CompositeString, Element, Header, Json, Number, Object, SnapResponse,
-    Snapshot, Value,
+    Snapshot, Status, Value,
 };
 use chrono::{DateTime, NaiveDateTime};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 pub fn compare_to_snapshot(snapshot: &Snapshot, response: &SnapResponse) -> bool {
@@ -32,9 +32,21 @@ pub fn compare_to_snapshot(snapshot: &Snapshot, response: &SnapResponse) -> bool
     return true;
 }
 
-fn match_status(snapshot_status: &Number, response_status: &u16) -> bool {
+fn match_status(snapshot_status: &Status, response_status: &u16) -> bool {
     return match snapshot_status {
-        Number::Int(value) => value == &(response_status.clone() as i64),
+        Status::Value(Number::Int(value)) => value == &(response_status.clone() as i64),
+        Status::Pattern(pattern) => {
+            let code = response_status.to_string();
+            for (index, number) in code.chars().enumerate() {
+                let pattern_number = pattern.chars().nth(index).unwrap();
+                if pattern_number != 'x' && pattern_number != 'X' {
+                    if pattern_number != number {
+                        return false;
+                    }
+                }
+            }
+            true
+        }
         _ => false,
     };
 }
@@ -95,8 +107,10 @@ fn match_headers(
 fn match_body(snapshot_body: &Option<Json>, response_body: &Option<Json>) -> bool {
     return match (snapshot_body, response_body) {
         (None, None) => true,
-        (Some(snapshot), Some(response)) => match_body_element(&snapshot.element, &response.element),
-        _ => false
+        (Some(snapshot), Some(response)) => {
+            match_body_element(&snapshot.element, &response.element)
+        }
+        _ => false,
     };
 }
 

@@ -1,5 +1,5 @@
 ﻿use crate::client::HttpResponse;
-use crate::types::{ExecuteOptions, ExecutedRequest, HttpFile, RawInput, UpdateOptions};
+use crate::types::{ExecuteOptions, ExecutedRequest, HttpFile, Mode, RawInput, UpdateOptions};
 use itertools::Itertools;
 use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd};
 use serde_json::Value;
@@ -28,7 +28,7 @@ pub async fn run(
     if extension == "http" {
         let (passed, file_content) =
             handle_http_file(path_to_file, environment_variables, execute_options).await?;
-        if !passed {
+        if !passed && execute_options.mode == Mode::Update {
             let mut file = File::options()
                 .write(true)
                 .truncate(true)
@@ -42,7 +42,7 @@ pub async fn run(
     } else if extension == "md" {
         let (passed, sections_content) =
             handle_markdown_file(path_to_file, environment_variables, execute_options).await?;
-        if !passed {
+        if !passed && execute_options.mode == Mode::Update {
             let raw_input = read_to_string(path_to_file).unwrap();
             let parser = Parser::new(&raw_input);
 

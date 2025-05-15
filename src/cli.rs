@@ -1,4 +1,5 @@
-﻿use clap::{Args, Parser, Subcommand, ValueEnum};
+﻿use std::ffi::OsStr;
+use clap::{Args, Parser, Subcommand, ValueEnum};
 use glob::glob;
 use std::path::PathBuf;
 
@@ -15,10 +16,10 @@ pub(crate) struct Cli {
 
 /// Global options to be reused in each subcommand
 #[derive(Debug, Args)]
-pub(crate)struct GlobalOptions {
+pub(crate) struct GlobalOptions {
     /// File path or directory to process (supports wildcards)
     #[arg(long, required = true)]
-    pub(crate)path: PathBuf,
+    pub(crate) path: PathBuf,
 
     /// Enable verbose output
     #[arg(short, long)]
@@ -60,7 +61,7 @@ pub struct UpdateOptions {
 
     /// Choose which detectors to run. Can be specified multiple times.
     #[arg(long, value_enum, value_delimiter = ',', num_args = 1..)]
-    pub(crate) detectors: Vec<Detector>
+    pub(crate) detectors: Vec<Detector>,
 }
 
 #[derive(Debug, ValueEnum, Clone, PartialEq, Eq)]
@@ -86,7 +87,8 @@ pub(crate) fn expand_paths(path: PathBuf) -> Vec<PathBuf> {
             Ok(paths) => {
                 for entry in paths {
                     match entry {
-                        Ok(p) => expanded.push(p),
+                        Ok(p) if is_supported_file(&p) => expanded.push(p),
+                        Ok(_) => continue,
                         Err(e) => log::error!("Error expanding path: {}", e),
                     }
                 }
@@ -94,7 +96,16 @@ pub(crate) fn expand_paths(path: PathBuf) -> Vec<PathBuf> {
             Err(e) => log::error!("Glob pattern error: {}", e),
         }
     } else {
-        expanded.push(path);
+        if is_supported_file(&path) {
+            expanded.push(path);
+        } else {
+            panic!("Unsupported file type {}", path.display());
+        }
     }
     return expanded;
+}
+
+fn is_supported_file(path: &PathBuf) -> bool {
+    let extension = path.extension().unwrap_or(OsStr::new(""));
+    return extension == "http" || extension == "md";
 }

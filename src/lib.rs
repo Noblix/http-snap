@@ -1,13 +1,12 @@
 ﻿use crate::client::HttpResponse;
 use crate::types::{ExecuteOptions, ExecutedRequest, HttpFile, Mode, RawInput, UpdateOptions};
-use itertools::Itertools;
 use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd};
+use pulldown_cmark_to_cmark::cmark;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fs::{read_to_string, File};
 use std::io::Write;
 use std::path::PathBuf;
-use pulldown_cmark_to_cmark::cmark;
 
 pub mod client;
 pub mod comparer;
@@ -49,35 +48,33 @@ pub async fn run(
             let mut index = 0;
             let mut replaced = false;
             let mut in_http = false;
-            let mapped = parser.map(|event| {
-                match event {
+            let mapped = parser.map(|event| match event {
+                Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang)))
+                    if lang.eq_ignore_ascii_case("http") =>
+                {
+                    in_http = true;
+                    replaced = false;
                     Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang)))
-                        if lang.eq_ignore_ascii_case("http") =>
-                    {
-                        in_http = true;
-                        replaced = false;
-                        Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang)))
-                    }
-                    Event::End(TagEnd::CodeBlock) => {
-                        in_http = false;
-                        event
-                    }
-                    Event::Text(_) if in_http => {
-                        if !replaced {
-                            let updated = sections_content[index].clone();
-                            index += 1;
-                            replaced = true;
-                            Event::Text(updated.into())
-                        } else {
-                            Event::Text("".into())
-                        }
-                    }
-                    other => other,
                 }
+                Event::End(TagEnd::CodeBlock) => {
+                    in_http = false;
+                    event
+                }
+                Event::Text(_) if in_http => {
+                    if !replaced {
+                        let updated = sections_content[index].clone();
+                        index += 1;
+                        replaced = true;
+                        Event::Text(updated.into())
+                    } else {
+                        Event::Text("".into())
+                    }
+                }
+                other => other,
             });
             let mut content = String::new();
             cmark(mapped, &mut content).expect("Markdown re-emit failed");
-            
+
             let mut file = File::options()
                 .write(true)
                 .truncate(true)
@@ -107,13 +104,38 @@ async fn handle_markdown_file(
     let (passed, raw_snapshots) =
         run_requests(requests, environment_variables, stop_on_failure).await?;
     let final_snapshots = detect_patterns(raw_snapshots, &execute_options.update_options);
-    let sections = final_snapshots
-        .into_iter()
-        .into_group_map_by(|i| i.raw_input.section);
-    
+
+    let mut recombined_sections = Vec::new();
+    let mut section_index = 0;
+    let mut previous_import = None;
+    let mut section = Vec::new();
+    for snapshot in final_snapshots {
+        if snapshot.raw_input.imported_path != None {
+            if previous_import != snapshot.raw_input.imported_path {
+                previous_import = snapshot.raw_input.imported_path.clone();
+                section.push(snapshot);
+            }
+            continue;
+        }
+
+        if snapshot.raw_input.section != section_index {
+            if !section.is_empty() {
+                recombined_sections.push(section);
+            }
+
+            section_index = snapshot.raw_input.section.clone();
+            section = Vec::new();
+        }
+        section.push(snapshot);
+    }
+    recombined_sections.push(section);
+
     let mut sections_content = Vec::new();
-    for key in sections.keys().sorted() {
-        sections_content.push(create_http_content(&sections[key], &execute_options.update_options))
+    for section in recombined_sections {
+        sections_content.push(create_http_content(
+            &section,
+            &execute_options.update_options,
+        ))
     }
     return Ok((passed, sections_content));
 }

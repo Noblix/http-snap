@@ -77,6 +77,7 @@ pub struct HttpFile {
     pub snapshots: Vec<Snapshot>,
 }
 
+#[derive(Debug)]
 pub struct ExecutedRequest {
     pub raw_input: RawInput,
     pub snapshot: Option<SnapResponse>,

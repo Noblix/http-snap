@@ -198,6 +198,37 @@ async fn generate_guid() {
 }
 
 #[tokio::test]
+async fn use_generated_variable_in_header() {
+    common::init_logger();
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path_regex(r"^/item/.+$"))
+        .respond_with(|req: &Request| {
+            let id = req.url.path().rsplit('/').next().unwrap_or("unknown");
+            ResponseTemplate::new(200)
+                .insert_header("location", format!("/item/{id}"))
+                .set_body_json(json!({
+                    "id": id,
+                    "name": "Echo"
+                }))
+        })
+        .mount(&server)
+        .await;
+
+    let mut path = PathBuf::new();
+    path.push("tests/e2e_inputs/use_generated_variable_in_header.http");
+    let result = run(
+        &path,
+        &common::create_environment_variables(&server),
+        &ExecuteOptions::new_test(),
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(result, true);
+}
+
+#[tokio::test]
 async fn detect_guid_and_timestamp() {
     common::init_logger();
     let server = MockServer::start().await;

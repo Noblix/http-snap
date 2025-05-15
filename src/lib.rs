@@ -96,11 +96,7 @@ async fn handle_markdown_file(
     execute_options: &ExecuteOptions,
 ) -> Result<(bool, Vec<String>), Box<dyn std::error::Error>> {
     let requests = request_extractor::extract_requests(path_to_file);
-    let stop_on_failure = if let Some(update_options) = &execute_options.update_options {
-        update_options.stop_on_failure
-    } else {
-        true
-    };
+    let stop_on_failure = get_stop_on_failure_option(&execute_options);
     let (passed, raw_snapshots) =
         run_requests(requests, environment_variables, stop_on_failure).await?;
     let final_snapshots = detect_patterns(raw_snapshots, &execute_options.update_options);
@@ -146,11 +142,7 @@ async fn handle_http_file(
     execute_options: &ExecuteOptions,
 ) -> Result<(bool, String), Box<dyn std::error::Error>> {
     let requests = request_extractor::extract_requests(path_to_file);
-    let stop_on_failure = if let Some(update_options) = &execute_options.update_options {
-        update_options.stop_on_failure
-    } else {
-        true
-    };
+    let stop_on_failure = get_stop_on_failure_option(&execute_options);
     let (passed, raw_snapshots) =
         run_requests(requests, environment_variables, stop_on_failure).await?;
     let final_snapshots = detect_patterns(raw_snapshots, &execute_options.update_options);
@@ -208,6 +200,14 @@ async fn run_requests(
     }
 
     return Ok((passed, executed_requests));
+}
+
+fn get_stop_on_failure_option(execute_options: &&ExecuteOptions) -> bool {
+    if let Some(update_options) = &execute_options.update_options {
+        update_options.stop_on_failure
+    } else {
+        true
+    }
 }
 
 fn detect_patterns(

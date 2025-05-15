@@ -126,6 +126,7 @@ impl VariableStore {
             return self.variables.get(name).unwrap().clone();
         }
 
+        log::error!("Variable named \"{}\" was not found!", name);
         panic!("Variable named \"{}\" was not found!", name);
     }
 

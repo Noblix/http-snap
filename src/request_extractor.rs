@@ -23,7 +23,8 @@ fn extract_from_http_file(path_to_file: &PathBuf) -> Vec<RawInput> {
 }
 
 fn extract_from_markdown(path_to_file: &PathBuf) -> Vec<RawInput> {
-    let raw_text = read_to_string(path_to_file).unwrap();
+    let raw_text = read_to_string(path_to_file)
+        .unwrap_or_else(|_| panic!("Could not read file {}", path_to_file.display()));
     let text = raw_text.trim_start_matches("\u{feff}");
     let sections = extract_http_section_from_markdown(text);
 

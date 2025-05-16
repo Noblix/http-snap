@@ -1,7 +1,7 @@
 use crate::cli::{expand_paths, Cli, Commands, GlobalOptions, UpdateMode};
 use clap::Parser;
 use http_snap::parser::parse_environment;
-use http_snap::types::{ExecuteOptions, Mode, Value};
+use http_snap::types::{ClientOptions, ExecuteOptions, Mode, Value};
 use http_snap::variable_generator;
 use http_snap::{run, types};
 use std::collections::{HashMap, HashSet};
@@ -24,23 +24,51 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::parse();
 
     return match args.command {
-        Commands::Test { global } => run_test(global).await,
-        Commands::Update { global, options } => run_update(global, options).await,
+        Commands::Test { global } => {
+            let client_options = get_client_options(&global);
+            run_test(global, client_options).await
+        }
+        Commands::Update { global, options } => {
+            let client_options = get_client_options(&global);
+            run_update(global, options, client_options).await
+        }
     };
 }
 
-async fn run_test(global_options: GlobalOptions) -> Result<(), Box<dyn std::error::Error>> {
+fn get_client_options(global_options: &GlobalOptions) -> ClientOptions {
+    return match &global_options.client_options {
+        None => ClientOptions::default(),
+        Some(path) => {
+            let file_content = std::fs::read_to_string(path).unwrap();
+            let json = file_content.trim_start_matches("\u{feff}");
+            let client_options = serde_json::from_str(&json).expect("Failed to parse JSON");
+            client_options
+        }
+    };
+}
+
+async fn run_test(
+    global_options: GlobalOptions,
+    client_options: ClientOptions,
+) -> Result<(), Box<dyn std::error::Error>> {
     setup_logging(global_options.verbose);
     let expanded_paths = expand_paths(global_options.path);
     let environment_variables = get_environment_variables(global_options.environment);
     let execute_options = ExecuteOptions::new_test();
 
-    return execute(expanded_paths, environment_variables, execute_options).await;
+    return execute(
+        expanded_paths,
+        environment_variables,
+        execute_options,
+        client_options,
+    )
+    .await;
 }
 
 async fn run_update(
     global_options: GlobalOptions,
     update_options: cli::UpdateOptions,
+    client_options: ClientOptions,
 ) -> Result<(), Box<dyn std::error::Error>> {
     setup_logging(global_options.verbose);
     let expanded_paths = expand_paths(global_options.path);
@@ -58,7 +86,13 @@ async fn run_update(
         }),
     };
 
-    return execute(expanded_paths, environment_variables, execute_options).await;
+    return execute(
+        expanded_paths,
+        environment_variables,
+        execute_options,
+        client_options,
+    )
+    .await;
 }
 
 fn get_detectors(input: Vec<cli::Detector>) -> HashSet<types::Detector> {
@@ -80,13 +114,20 @@ async fn execute(
     paths: Vec<PathBuf>,
     environment_variables: HashMap<String, Value>,
     execute_options: ExecuteOptions,
+    client_options: ClientOptions,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut total_count = 0;
     let mut failed_count = 0;
     for path in paths {
         total_count += 1;
         log::info!("Running {:?}", path);
-        let result = run(&path, &environment_variables, &execute_options).await;
+        let result = run(
+            &path,
+            &environment_variables,
+            &execute_options,
+            &client_options,
+        )
+        .await;
         if result? {
             log::info!("Test {:?} passed", path);
         } else {

@@ -1,0 +1,16 @@
+POST {{test_host}}/animals
+
+{
+    "name": "Cat"
+}
+
+SNAPSHOT
+status: 200
+
+content-length: 21
+content-type: application/json
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z"):"Thu, 15 May 2025 14:21:01 GMT"}}
+
+{
+  "result": "Accepted"
+}

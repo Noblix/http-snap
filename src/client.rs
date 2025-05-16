@@ -1,9 +1,10 @@
-﻿use crate::types::{Header, HttpFile, HttpVerb, Json};
+﻿use crate::types::{ClientOptions, Header, HttpFile, HttpVerb, Json};
 use reqwest::header::{HeaderMap, HeaderName};
 use reqwest::{Client, Method};
 
 pub struct HttpClient {
     client: Client,
+    options: ClientOptions
 }
 
 #[derive(Debug)]
@@ -14,19 +15,19 @@ pub struct HttpResponse {
 }
 
 impl HttpClient {
-    pub fn new() -> Self {
+    pub fn new(options: &ClientOptions) -> Self {
         let client = Client::builder()
-            .cookie_store(true)
+            .cookie_store(options.use_cookies.unwrap_or(true))
             .build()
             .expect("Failed to build client");
-        return Self { client };
+        return Self { client, options: options.clone() };
     }
 
     pub async fn send_request(
         &self,
         http_file: &HttpFile,
     ) -> Result<HttpResponse, Box<dyn std::error::Error>> {
-        let headers = get_headers(&http_file.headers);
+        let headers = self.get_headers(&http_file.headers);
         let body = get_json(&http_file.body);
 
         let url = &http_file.url.to_string();
@@ -52,17 +53,27 @@ impl HttpClient {
             body,
         });
     }
-}
 
-fn get_headers(request_headers: &Vec<Header>) -> HeaderMap {
-    let mut headers = HeaderMap::new();
-    for header in request_headers {
-        headers.insert(
-            HeaderName::from_bytes(header.name.as_ref()).unwrap(),
-            header.value.to_string().parse().unwrap(),
-        );
+    fn get_headers(&self, request_headers: &Vec<Header>) -> HeaderMap {
+        let mut headers = HeaderMap::new();
+
+        if let Some(default_headers) = &self.options.default_headers {
+            for header in default_headers {
+                headers.insert(
+                    HeaderName::from_bytes(header.name.as_ref()).unwrap(),
+                    header.value.parse().unwrap(),
+                );
+            }
+        }
+
+        for header in request_headers {
+            headers.insert(
+                HeaderName::from_bytes(header.name.as_ref()).unwrap(),
+                header.value.to_string().parse().unwrap(),
+            );
+        }
+        return headers;
     }
-    return headers;
 }
 
 fn get_json(body: &Option<Json>) -> String {

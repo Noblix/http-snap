@@ -28,6 +28,10 @@ pub(crate) struct GlobalOptions {
     /// File containing environment variables
     #[arg(short, long)]
     pub(crate) environment: Option<PathBuf>,
+
+    /// Json file containing client options
+    #[arg(short, long)]
+    pub(crate) client_options: Option<PathBuf>,
 }
 
 /// Enum of subcommands (test and update)

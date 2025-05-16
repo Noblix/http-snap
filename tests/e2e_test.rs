@@ -1,5 +1,5 @@
 ﻿use http_snap::run;
-use http_snap::types::{Detector, ExecuteOptions, UpdateMode};
+use http_snap::types::{ClientOptions, DefaultHeader, Detector, ExecuteOptions, UpdateMode};
 use serde_json::json;
 use std::path::PathBuf;
 use uuid::Uuid;
@@ -24,6 +24,7 @@ async fn send_get_with_no_body() {
         &path,
         &common::create_environment_variables(&server),
         &ExecuteOptions::new_test(),
+        &ClientOptions::default(),
     )
     .await
     .unwrap();
@@ -47,11 +48,71 @@ async fn post_with_no_response() {
         &path,
         &common::create_environment_variables(&server),
         &ExecuteOptions::new_test(),
+        &ClientOptions::default(),
     )
     .await
     .unwrap();
 
     assert_eq!(result, true);
+}
+
+#[tokio::test]
+async fn post_with_body_but_default_header() {
+    common::init_logger();
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/animals"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"result": "Accepted"})))
+        .mount(&server)
+        .await;
+
+    let mut path = PathBuf::new();
+    path.push("tests/e2e_inputs/post_with_body_but_default_header.http");
+    let result = run(
+        &path,
+        &common::create_environment_variables(&server),
+        &ExecuteOptions::new_update(true, UpdateMode::Overwrite, &[Detector::Timestamp]),
+        &ClientOptions {
+            use_cookies: Some(true),
+            default_headers: Some(
+                [
+                    DefaultHeader {
+                        name: String::from("Accept"),
+                        value: String::from("application/json"),
+                    },
+                    DefaultHeader {
+                        name: String::from("Content-Type"),
+                        value: String::from("application/json"),
+                    },
+                ]
+                .to_vec(),
+            ),
+        },
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(result, true);
+    let request_headers = server
+        .received_requests()
+        .await
+        .unwrap()
+        .first()
+        .unwrap()
+        .headers
+        .clone();
+    assert_eq!(
+        request_headers.get("Accept").unwrap().to_str().unwrap(),
+        "application/json"
+    );
+    assert_eq!(
+        request_headers
+            .get("Content-Type")
+            .unwrap()
+            .to_str()
+            .unwrap(),
+        "application/json"
+    );
 }
 
 #[tokio::test]
@@ -75,6 +136,7 @@ async fn compare_timestamp_formats() {
         &path,
         &common::create_environment_variables(&server),
         &ExecuteOptions::new_test(),
+        &ClientOptions::default(),
     )
     .await
     .unwrap();
@@ -103,6 +165,7 @@ async fn detect_timestamp_formats() {
         &path,
         &common::create_environment_variables(&server),
         &ExecuteOptions::new_update(true, UpdateMode::Overwrite, &[Detector::Timestamp]),
+        &ClientOptions::default(),
     )
     .await
     .unwrap();
@@ -131,6 +194,7 @@ async fn detect_timestamp_formats_keeping_values() {
         &path,
         &common::create_environment_variables(&server),
         &ExecuteOptions::new_update(true, UpdateMode::Overwrite, &[Detector::Timestamp]),
+        &ClientOptions::default(),
     )
     .await
     .unwrap();
@@ -161,6 +225,7 @@ async fn compare_guid_formats() {
         &path,
         &common::create_environment_variables(&server),
         &ExecuteOptions::new_test(),
+        &ClientOptions::default(),
     )
     .await
     .unwrap();
@@ -190,6 +255,7 @@ async fn generate_guid() {
         &path,
         &common::create_environment_variables(&server),
         &ExecuteOptions::new_test(),
+        &ClientOptions::default(),
     )
     .await
     .unwrap();
@@ -220,7 +286,12 @@ async fn use_generated_variable_in_header() {
     let result = run(
         &path,
         &common::create_environment_variables(&server),
-        &ExecuteOptions::new_test(),
+        &ExecuteOptions::new_update(
+            true,
+            UpdateMode::Overwrite,
+            &[Detector::Guid, Detector::Timestamp],
+        ),
+        &ClientOptions::default(),
     )
     .await
     .unwrap();
@@ -254,6 +325,7 @@ async fn detect_guid_and_timestamp() {
             UpdateMode::Overwrite,
             &[Detector::Guid, Detector::Timestamp],
         ),
+        &ClientOptions::default(),
     )
     .await
     .unwrap();
@@ -282,6 +354,7 @@ async fn import_and_use_variable() {
         &path,
         &common::create_environment_variables(&server),
         &ExecuteOptions::new_test(),
+        &ClientOptions::default(),
     )
     .await
     .unwrap();
@@ -353,6 +426,7 @@ async fn writing_snapshot() {
         &path,
         &common::create_environment_variables(&server),
         &ExecuteOptions::new_update(true, UpdateMode::Overwrite, &[Detector::Timestamp]),
+        &ClientOptions::default(),
     )
     .await
     .unwrap();
@@ -380,6 +454,7 @@ async fn markdown_with_single_section() {
             UpdateMode::Overwrite,
             &[Detector::Timestamp, Detector::Timestamp],
         ),
+        &ClientOptions::default(),
     )
     .await
     .unwrap();
@@ -413,9 +488,10 @@ async fn markdown_with_multiple_sections() {
             UpdateMode::Overwrite,
             &[Detector::Timestamp, Detector::Timestamp],
         ),
+        &ClientOptions::default(),
     )
-        .await
-        .unwrap();
+    .await
+    .unwrap();
 
     assert_eq!(result, true);
 }
@@ -436,9 +512,10 @@ async fn status_pattern() {
         &path,
         &common::create_environment_variables(&server),
         &ExecuteOptions::new_test(),
+        &ClientOptions::default(),
     )
-        .await
-        .unwrap();
+    .await
+    .unwrap();
 
     assert_eq!(result, true);
 }

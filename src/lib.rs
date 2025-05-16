@@ -1,5 +1,7 @@
 ﻿use crate::client::HttpResponse;
-use crate::types::{ExecuteOptions, ExecutedRequest, HttpFile, Mode, RawInput, UpdateOptions};
+use crate::types::{
+    ClientOptions, ExecuteOptions, ExecutedRequest, HttpFile, Mode, RawInput, UpdateOptions,
+};
 use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd};
 use pulldown_cmark_to_cmark::cmark;
 use serde_json::Value;
@@ -22,11 +24,17 @@ pub async fn run(
     path_to_file: &PathBuf,
     environment_variables: &HashMap<String, types::Value>,
     execute_options: &ExecuteOptions,
+    client_options: &ClientOptions,
 ) -> Result<bool, Box<dyn std::error::Error>> {
     let extension = path_to_file.extension().unwrap();
     if extension == "http" {
-        let (passed, file_content) =
-            handle_http_file(path_to_file, environment_variables, execute_options).await?;
+        let (passed, file_content) = handle_http_file(
+            path_to_file,
+            environment_variables,
+            execute_options,
+            client_options,
+        )
+        .await?;
         if !passed && execute_options.mode == Mode::Update {
             let mut file = File::options()
                 .write(true)
@@ -39,8 +47,13 @@ pub async fn run(
         }
         return Ok(passed);
     } else if extension == "md" {
-        let (passed, sections_content) =
-            handle_markdown_file(path_to_file, environment_variables, execute_options).await?;
+        let (passed, sections_content) = handle_markdown_file(
+            path_to_file,
+            environment_variables,
+            execute_options,
+            client_options,
+        )
+        .await?;
         if !passed && execute_options.mode == Mode::Update {
             let raw_input = read_to_string(path_to_file).unwrap();
             let parser = Parser::new(&raw_input);
@@ -94,11 +107,17 @@ async fn handle_markdown_file(
     path_to_file: &PathBuf,
     environment_variables: &HashMap<String, types::Value>,
     execute_options: &ExecuteOptions,
+    client_options: &ClientOptions,
 ) -> Result<(bool, Vec<String>), Box<dyn std::error::Error>> {
     let requests = request_extractor::extract_requests(path_to_file);
     let stop_on_failure = get_stop_on_failure_option(&execute_options);
-    let (passed, raw_snapshots) =
-        run_requests(requests, environment_variables, stop_on_failure).await?;
+    let (passed, raw_snapshots) = run_requests(
+        requests,
+        environment_variables,
+        stop_on_failure,
+        client_options,
+    )
+    .await?;
     let final_snapshots = detect_patterns(raw_snapshots, &execute_options.update_options);
 
     let mut recombined_sections = Vec::new();
@@ -140,11 +159,17 @@ async fn handle_http_file(
     path_to_file: &PathBuf,
     environment_variables: &HashMap<String, types::Value>,
     execute_options: &ExecuteOptions,
+    client_options: &ClientOptions,
 ) -> Result<(bool, String), Box<dyn std::error::Error>> {
     let requests = request_extractor::extract_requests(path_to_file);
     let stop_on_failure = get_stop_on_failure_option(&execute_options);
-    let (passed, raw_snapshots) =
-        run_requests(requests, environment_variables, stop_on_failure).await?;
+    let (passed, raw_snapshots) = run_requests(
+        requests,
+        environment_variables,
+        stop_on_failure,
+        client_options,
+    )
+    .await?;
     let final_snapshots = detect_patterns(raw_snapshots, &execute_options.update_options);
     let file_content = create_http_content(&final_snapshots, &execute_options.update_options);
     return Ok((passed, file_content));
@@ -154,6 +179,7 @@ async fn run_requests(
     inputs: Vec<RawInput>,
     environment_variables: &HashMap<String, types::Value>,
     stop_on_failure: bool,
+    client_options: &ClientOptions,
 ) -> Result<(bool, Vec<ExecutedRequest>), Box<dyn std::error::Error>> {
     let mut passed = true;
     let mut executed_requests = Vec::new();
@@ -167,7 +193,7 @@ async fn run_requests(
     let mut variable_store = variable_store::VariableStore::new();
     variable_store.extend_variables(&environment_variables);
 
-    let client = client::HttpClient::new();
+    let client = client::HttpClient::new(client_options);
     for (index, request) in inputs.into_iter().enumerate() {
         let http_file = parser::parse_file(&request.text).unwrap();
         let http_file_without_variables = variable_store.replace_variables(http_file);

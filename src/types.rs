@@ -1,5 +1,5 @@
 ﻿use serde::ser::{SerializeMap, SerializeSeq, Serializer};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
@@ -60,6 +60,30 @@ pub enum Detector {
     Guid,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClientOptions {
+    #[serde(default)]
+    pub use_cookies: Option<bool>,
+
+    #[serde(default)]
+    pub default_headers: Option<Vec<DefaultHeader>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DefaultHeader {
+    pub name: String,
+    pub value: String,
+}
+
+impl Default for ClientOptions {
+    fn default() -> Self {
+        ClientOptions {
+            use_cookies: None,
+            default_headers: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct RawInput {
     pub text: String,
@@ -104,7 +128,7 @@ pub struct Snapshot {
 #[derive(Debug)]
 pub enum Status {
     Value(Number),
-    Pattern(String)
+    Pattern(String),
 }
 
 #[derive(Debug, Clone)]
@@ -354,7 +378,7 @@ impl Serialize for Number {
             Number::Exponent(val) => {
                 let raw = RawValue::from_string(val.into()).map_err(serde::ser::Error::custom)?;
                 raw.serialize(serializer)
-            },
+            }
         }
     }
 }

@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use std::fs::{read_to_string, File};
 use std::io::Write;
 use std::path::PathBuf;
+use std::{time};
 
 pub mod client;
 pub mod comparer;
@@ -195,6 +196,12 @@ async fn run_requests(
 
     let client = client::HttpClient::new(client_options);
     for (index, request) in inputs.into_iter().enumerate() {
+        let delay_section = parser::try_parse_delay(&request.text).unwrap();
+        if let Some(delay) = delay_section {
+            tokio::time::sleep(time::Duration::from_millis(delay)).await;
+            continue;
+        }
+
         let http_file = parser::parse_file(&request.text).unwrap();
         let http_file_without_variables = variable_store.replace_variables(http_file);
         log_variable_store(&variable_store);

@@ -7,6 +7,8 @@ mod variable_parser;
 use crate::client::HttpResponse;
 use crate::types::*;
 use chumsky::error::Simple;
+use chumsky::prelude::just;
+use chumsky::text::int;
 use chumsky::Parser;
 use std::collections::HashMap;
 
@@ -29,6 +31,15 @@ fn parser() -> impl Parser<char, HttpFile, Error = Simple<char>> {
         );
 
     return base;
+}
+
+pub fn try_parse_delay(input: &str) -> Result<Option<u64>, Vec<Simple<char>>> {
+    let parser = (just("delay")
+        .ignore_then(just(' ').repeated())
+        .ignore_then(int(10).map(|num: String| num.parse::<u64>().unwrap())))
+    .or_not();
+    let result = parser.parse(input);
+    return result;
 }
 
 pub fn parse_file(input: &str) -> Result<HttpFile, Vec<Simple<char>>> {

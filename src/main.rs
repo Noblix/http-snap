@@ -6,24 +6,15 @@ use http_snap::variable_generator;
 use http_snap::{run, types};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
+use std::process;
 
 mod cli;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    #[cfg(debug_assertions)]
-    let args = Cli::try_parse_from(vec![
-        "http-snap",                  // program name (usually ignored)
-        "test",
-        "--path", "./http-examples/post-small-body.http",
-        "--environment",
-        "./http-examples/test_environment.txt",
-    ])?;
-
-    #[cfg(not(debug_assertions))]
+async fn main() {
     let args = Cli::parse();
 
-    return match args.command {
+    let passed = match args.command {
         Commands::Test { global } => {
             let client_options = get_client_options(&global);
             run_test(global, client_options).await
@@ -33,6 +24,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             run_update(global, options, client_options).await
         }
     };
+
+    match passed {
+        Ok(all_passed) => {
+            if all_passed {
+                process::exit(0)
+            } else {
+                process::exit(1)
+            }
+        }
+        Err(error) => {
+            log::error!("Failed with: {}", error);
+            process::exit(2)
+        }
+    }
 }
 
 fn get_client_options(global_options: &GlobalOptions) -> ClientOptions {
@@ -50,7 +55,7 @@ fn get_client_options(global_options: &GlobalOptions) -> ClientOptions {
 async fn run_test(
     global_options: GlobalOptions,
     client_options: ClientOptions,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<bool, Box<dyn std::error::Error>> {
     setup_logging(global_options.verbose);
     let expanded_paths = expand_paths(global_options.path);
     let environment_variables = get_environment_variables(global_options.environment);
@@ -69,7 +74,7 @@ async fn run_update(
     global_options: GlobalOptions,
     update_options: cli::UpdateOptions,
     client_options: ClientOptions,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<bool, Box<dyn std::error::Error>> {
     setup_logging(global_options.verbose);
     let expanded_paths = expand_paths(global_options.path);
     let environment_variables = get_environment_variables(global_options.environment);
@@ -115,9 +120,10 @@ async fn execute(
     environment_variables: HashMap<String, Value>,
     execute_options: ExecuteOptions,
     client_options: ClientOptions,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<bool, Box<dyn std::error::Error>> {
     let mut total_count = 0;
     let mut failed_count = 0;
+    let mut failed_names = Vec::new();
     for path in paths {
         total_count += 1;
         log::info!("Running {:?}", path);
@@ -132,6 +138,7 @@ async fn execute(
             log::info!("Test {:?} passed", path);
         } else {
             failed_count += 1;
+            failed_names.push(path.display().to_string());
             log::error!("Test {:?} failed", path);
         }
     }
@@ -140,8 +147,12 @@ async fn execute(
         "Ran {total_count} tests: {0} passed and {failed_count} failed",
         total_count - failed_count
     );
+    if failed_count > 0 {
+        let failed = failed_names.join("\n");
+        log::error!("The following failed: \n {failed}");
+    } 
 
-    return Ok(());
+    return Ok(failed_count == 0);
 }
 
 fn setup_logging(verbose: bool) {

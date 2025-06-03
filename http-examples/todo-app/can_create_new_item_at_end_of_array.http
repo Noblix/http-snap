@@ -1,0 +1,84 @@
+import sign_in.http
+
+@host = "https://localhost:50001"
+
+GET {{host}}/api/items
+Content-Type: application/json; charset=utf-8
+
+SNAPSHOT
+status: 200
+
+content-type: application/json; charset=utf-8
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
+server: Kestrel
+transfer-encoding: chunked
+
+{
+  "items": {{before_items : _}}
+}
+
+###
+
+POST {{host}}/api/items
+Content-Type: application/json; charset=utf-8
+
+{
+  "text": "Buy snacks"
+}
+
+SNAPSHOT
+status: 201
+
+content-type: application/json; charset=utf-8
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
+location: {{item_uri:_}}
+server: Kestrel
+transfer-encoding: chunked
+
+{
+  "id": {{item_id : guid}}
+}
+
+###
+
+GET {{host}}{{item_uri}}
+Content-Type: application/json; charset=utf-8
+
+SNAPSHOT
+status: 200
+
+content-type: application/json; charset=utf-8
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
+server: Kestrel
+transfer-encoding: chunked
+
+{{ item: 
+  {
+    "id": "{{item_id}}",
+    "text": "Buy snacks",
+    "isCompleted": false,
+    "lastUpdated": {{_:timestamp("%Y-%m-%d %H:%M:%SZ")}}
+  }
+}}
+
+###
+
+GET {{host}}/api/items
+Content-Type: application/json; charset=utf-8
+
+SNAPSHOT
+status: 200
+
+content-type: application/json; charset=utf-8
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
+server: Kestrel
+transfer-encoding: chunked
+
+{
+  "items":
+    {{before_items}}
+    +
+    [
+      {{item}}
+    ]
+}

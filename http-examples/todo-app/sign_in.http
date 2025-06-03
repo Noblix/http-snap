@@ -13,5 +13,3 @@ pragma: no-cache
 set-cookie: {{_:_}}
 transfer-encoding: chunked
 x-frame-options: SAMEORIGIN
-
-null

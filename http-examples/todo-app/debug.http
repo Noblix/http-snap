@@ -3,7 +3,14 @@ POST https://localhost:50001/sign-in
 SNAPSHOT
 status: 200
 
-null
+cache-control: no-cache, no-store
+content-type: text/html; charset=utf-8
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
+pragma: no-cache
+server: Kestrel
+set-cookie: {{_:_}}
+transfer-encoding: chunked
+x-frame-options: SAMEORIGIN
 
 ###
 

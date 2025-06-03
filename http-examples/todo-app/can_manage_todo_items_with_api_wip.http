@@ -72,8 +72,6 @@ status: 204
 date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
 server: Kestrel
 
-null
-
 ###
 
 GET {{host}}{{item_uri}}
@@ -128,8 +126,6 @@ status: 204
 
 date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z")}}
 server: Kestrel
-
-null
 
 ###
 

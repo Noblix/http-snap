@@ -154,7 +154,7 @@ async fn detect_timestamp_formats() {
             "RFC-2822": "Tue, 25 Mar 2025 14:54:09 GMT",
             "ISO-8601-Basic": "20250325T144509Z",
             "ISO-8601-Extended": "2025-03-25T14:54:09Z",
-            "12‑Hour-Format": "03/25/2025 02:54:09 PM",
+            "12-Hour-Format": "03/25/2025 02:54:09 PM",
         })))
         .mount(&server)
         .await;

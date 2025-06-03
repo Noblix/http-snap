@@ -272,5 +272,10 @@ fn compare_timestamp_format(pattern: &CompositeString, value: &str) -> bool {
 }
 
 fn compare_guid_format(value: &str) -> bool {
-    return Uuid::try_parse(value).is_ok();
+    let length = value.as_bytes().len();
+    if length == 32 || length == 36 {
+        return Uuid::try_parse(value).is_ok();
+    } else {
+        return false;
+    }
 }

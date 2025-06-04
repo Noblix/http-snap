@@ -55,15 +55,15 @@ pub(crate) enum Commands {
 
 #[derive(Debug, Args)]
 pub struct UpdateOptions {
-    /// Continue updating tests in spite of response mismatches
+    /// Continue updating tests despite response mismatches
     #[arg(long = "continue-on-failure", action = clap::ArgAction::SetFalse, default_value_t = true)]
     pub(crate) stop_on_failure: bool,
 
-    /// Choose how mismatching snapshots should be updated.
+    /// Choose how mismatching snapshots should be updated
     #[arg(long, value_enum, default_value_t = UpdateMode::Overwrite)]
     pub(crate) update_mode: UpdateMode,
 
-    /// Choose which detectors to run. Can be specified multiple times.
+    /// Choose which detectors to run. Can be specified multiple times
     #[arg(long, value_enum, value_delimiter = ',', num_args = 1..)]
     pub(crate) detectors: Vec<Detector>,
 }

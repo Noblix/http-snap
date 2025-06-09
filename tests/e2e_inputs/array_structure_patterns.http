@@ -94,6 +94,31 @@ date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z"):"Mon, 09 Jun 2025 18:42:33 GMT"}
 [
   ...
   {
+    "id": 2,
+    "name": "Bob"
+  },
+  {
+    "id": 3,
+    "name": "Charlie"
+  }
+  ...
+]
+
+###
+
+GET {{test_host}}/items
+Accept: application/json
+
+SNAPSHOT
+status: 200
+
+content-length: 73
+content-type: application/json
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z"):"Mon, 09 Jun 2025 18:42:33 GMT"}}
+
+[
+  ...
+  {
     "id": 3,
     "name": "Charlie"
   }

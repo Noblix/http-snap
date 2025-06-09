@@ -86,7 +86,7 @@ impl Replacer {
         return match value {
             Value::Array(array) => {
                 let mut elements = Vec::new();
-                for element in array.get_elements() {
+                for element in array.get_known_elements() {
                     elements.push(self.detect_in_element(element));
                 }
                 Value::Array(Array::Literal(elements))

@@ -3,6 +3,7 @@
     Snapshot, Status, Value,
 };
 use chrono::{DateTime, NaiveDateTime};
+use itertools::Itertools;
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -181,13 +182,13 @@ fn match_body_object(expected: &Object, actual: &Object) -> bool {
     for member in &expected.members {
         let actual_member = actual_members.get(&member.key);
         if actual_member.is_none() {
-            log::error!("Could not find expected member named {:?}", member.key);
+            log::info!("Could not find expected member named {:?}", member.key);
             return false;
         }
 
         let matched_member = match_body_element(&member.value, &actual_member.unwrap().value);
         if !matched_member {
-            log::error!("Member named: {:?} did NOT match snapshot", member.key);
+            log::info!("Member named: {:?} did NOT match snapshot", member.key);
             return false;
         }
     }
@@ -196,14 +197,39 @@ fn match_body_object(expected: &Object, actual: &Object) -> bool {
 }
 
 fn match_body_array(expected: &Array, actual: &Array) -> bool {
-    if expected.get_elements().len() != actual.get_elements().len() {
+    return match expected {
+        Array::Literal(elements) => match_array_literal(elements, &actual.get_known_elements()),
+        Array::StartsWith(elements) => match_array_literal(
+            elements,
+            &actual
+                .get_known_elements()
+                .into_iter()
+                .take(elements.len())
+                .collect_vec(),
+        ),
+        Array::Contains(elements) => match_array_contains(elements, &actual.get_known_elements()),
+        Array::EndsWith(elements) => {
+            let actual_elements = actual.get_known_elements();
+            return match_array_literal(
+                elements,
+                &actual_elements
+                    .clone()
+                    .into_iter()
+                    .skip(actual_elements.len() - elements.len())
+                    .take(elements.len())
+                    .collect_vec(),
+            );
+        }
+        Array::VariableReference(name) => panic!("Variable named {name} has not been replaced yet"),
+    };
+}
+
+fn match_array_literal(expected: &Vec<Element>, actual: &Vec<Element>) -> bool {
+    if expected.len() != actual.len() {
         return false;
     }
 
-    let zipped = expected
-        .get_elements()
-        .into_iter()
-        .zip(actual.get_elements().into_iter());
+    let zipped = expected.into_iter().zip(actual.into_iter());
     for (expected_element, actual_element) in zipped {
         let matches_expected = match_body_element(&expected_element, &actual_element);
         if !matches_expected {
@@ -212,6 +238,24 @@ fn match_body_array(expected: &Array, actual: &Array) -> bool {
     }
 
     return true;
+}
+
+fn match_array_contains(expected: &Vec<Element>, actual: &Vec<Element>) -> bool {
+    for index in 0..(actual.len() - expected.len() + 1) {
+        let matched = match_array_literal(
+            expected,
+            &actual
+                .clone()
+                .into_iter()
+                .skip(index)
+                .take(expected.len())
+                .collect_vec(),
+        );
+        if matched {
+            return true;
+        }
+    }
+    return false;
 }
 
 fn match_body_number(expected: &Number, actual: &Number) -> bool {

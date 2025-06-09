@@ -101,7 +101,7 @@ fn format_object(object: &Object, indent: usize) -> String {
 }
 
 fn format_array(array: &Array, indent: usize) -> String {
-    let elements = array.get_elements();
+    let elements = array.get_known_elements();
     if elements.len() == 0 {
         return String::from("[]");
     }

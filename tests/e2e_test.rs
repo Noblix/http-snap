@@ -210,7 +210,7 @@ async fn compare_guid_formats() {
         .and(path("/dishes/favorite"))
         .respond_with(
             ResponseTemplate::new(200)
-                .insert_header("correlation-id", Uuid::new_v4().to_string().as_str())
+                .insert_header("correlation-id", "ff2fbf2f-77e2-403d-ae0e-6d3cedb1d8cf")
                 .set_body_json(json!({
                     "id": Uuid::new_v4().to_string(),
                     "name": "Beef Wellington"
@@ -508,6 +508,34 @@ async fn status_pattern() {
 
     let mut path = PathBuf::new();
     path.push("tests/e2e_inputs/status_pattern.http");
+    let result = run(
+        &path,
+        &common::create_environment_variables(&server),
+        &ExecuteOptions::new_test(),
+        &ClientOptions::default(),
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(result, true);
+}
+
+#[tokio::test]
+async fn array_structure_patterns() {
+    common::init_logger();
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/items"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!([
+            { "id": 1, "name": "Alice" },
+            { "id": 2, "name": "Bob" },
+            { "id": 3, "name": "Charlie"}
+        ])))
+        .mount(&server)
+        .await;
+
+    let mut path = PathBuf::new();
+    path.push("tests/e2e_inputs/array_structure_patterns.http");
     let result = run(
         &path,
         &common::create_environment_variables(&server),

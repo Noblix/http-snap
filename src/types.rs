@@ -323,20 +323,18 @@ pub struct Member {
 pub enum Array {
     VariableReference(String),
     Literal(Vec<Element>),
-    Composite(Vec<Array>),
+    StartsWith(Vec<Element>),
+    Contains(Vec<Element>),
+    EndsWith(Vec<Element>),
 }
 
 impl Array {
-    pub(crate) fn get_elements(&self) -> Vec<Element> {
+    pub(crate) fn get_known_elements(&self) -> Vec<Element> {
         return match self {
             Array::Literal(elements) => elements.clone(),
-            Array::Composite(parts) => {
-                let mut result = Vec::new();
-                for part in parts {
-                    result.extend(part.get_elements());
-                }
-                result
-            }
+            Array::StartsWith(elements) => elements.clone(),
+            Array::Contains(elements) => elements.clone(),
+            Array::EndsWith(elements) => elements.clone(),
             Array::VariableReference(name) => {
                 panic!("Variable named {name} has not been replaced yet")
             }
@@ -349,8 +347,8 @@ impl Serialize for Array {
     where
         S: Serializer,
     {
-        let mut seq = serializer.serialize_seq(Some(self.get_elements().len()))?;
-        for element in &self.get_elements() {
+        let mut seq = serializer.serialize_seq(Some(self.get_known_elements().len()))?;
+        for element in &self.get_known_elements() {
             seq.serialize_element(element)?;
         }
         return seq.end();

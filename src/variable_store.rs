@@ -60,10 +60,10 @@ impl VariableStore {
                 }
             }
             (Value::Array(snapshot_array), Value::Array(response_array)) => {
-                for (index, element) in snapshot_array.get_elements().iter().enumerate() {
+                for (index, element) in snapshot_array.get_known_elements().iter().enumerate() {
                     self.extract_variables_from_body(
                         element,
-                        response_array.get_elements().get(index).unwrap(),
+                        response_array.get_known_elements().get(index).unwrap(),
                     )
                 }
             }
@@ -177,24 +177,30 @@ impl VariableStore {
                 }
             }
             Array::Literal(elements) => {
-                let mut replaced = Vec::new();
-                for element in elements {
-                    replaced.push(Element {
-                        value: self.replace_in_value(&element.value),
-                        variable_store: element.variable_store.clone(),
-                        comparison: element.comparison.clone(),
-                    });
-                }
-                return Array::Literal(replaced);
+                return Array::Literal(self.replace_in_elements(elements));
             }
-            Array::Composite(parts) => {
-                let mut replaced = Vec::new();
-                for part in parts {
-                    replaced.push(self.replace_in_array(&part));
-                }
-                return Array::Composite(replaced);
+            Array::StartsWith(elements) => {
+                return Array::StartsWith(self.replace_in_elements(elements));
+            }
+            Array::Contains(elements) => {
+                return Array::Contains(self.replace_in_elements(elements));
+            }
+            Array::EndsWith(elements) => {
+                return Array::EndsWith(self.replace_in_elements(elements));
             }
         }
+    }
+    
+    fn replace_in_elements(&self, elements: &Vec<Element>) -> Vec<Element> {
+        let mut replaced = Vec::new();
+        for element in elements {
+            replaced.push(Element {
+                value: self.replace_in_value(&element.value),
+                variable_store: element.variable_store.clone(),
+                comparison: element.comparison.clone(),
+            });
+        }
+        return replaced;
     }
 
     fn replace_in_object(&self, object: &Object) -> Object {

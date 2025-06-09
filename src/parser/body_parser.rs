@@ -9,7 +9,9 @@ use chumsky::Parser;
 use std::rc::Rc;
 
 // Based on https://www.json.org/json-en.html
-pub(crate) fn body_parser(comparison: bool) -> impl Parser<char, Option<Json>, Error = Simple<char>> {
+pub(crate) fn body_parser(
+    comparison: bool,
+) -> impl Parser<char, Option<Json>, Error = Simple<char>> {
     let no_body = empty().map(|_| None);
 
     return json_parser(comparison).map(|body| Some(body)).or(no_body);
@@ -90,15 +92,24 @@ fn array_parser(
         .delimited_by(just("["), just("]"))
         .map(|elements| Value::Array(Array::Literal(elements)));
 
-    let composite = (elements_parser(element_parser.clone())
+    let dots = whitespace().then(just("...")).then(whitespace());
+    let starts_with = elements_parser(element_parser.clone())
+        .then_ignore(dots)
         .delimited_by(just("["), just("]"))
-        .map(|elements| Array::Literal(elements)))
-    .or(variable_name_string_parser().map(|name| Array::VariableReference(name)))
-    .separated_by(whitespace().then(just('+').then(whitespace())))
-    .at_least(2)
-    .map(|parts| Value::Array(Array::Composite(parts)));
+        .map(|elements| Value::Array(Array::StartsWith(elements)));
 
-    return empty.or(literal).or(composite);
+    let contains = dots
+        .ignore_then(elements_parser(element_parser.clone()))
+        .then_ignore(dots)
+        .delimited_by(just("["), just("]"))
+        .map(|elements| Value::Array(Array::Contains(elements)));
+
+    let ends_with = dots
+        .ignore_then(elements_parser(element_parser.clone()))
+        .delimited_by(just("["), just("]"))
+        .map(|elements| Value::Array(Array::EndsWith(elements)));
+
+    return choice((empty, literal, starts_with, contains, ends_with));
 }
 
 fn elements_parser(

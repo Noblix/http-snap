@@ -1,0 +1,70 @@
+{
+  "name": "http-snap-runner",
+  "displayName": "Http Snap Runner",
+  "description": "A simple wrapper for the http snap cli tool",
+  "version": "0.0.2",
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "Http Snap Runner",
+      "properties": {
+        "http-snap.path": {
+          "type": "string",
+          "default": "",
+          "description": "Path to Http Snap (where Cargo.toml is)"
+        },
+        "http-snap.environment": {
+          "type": "string",
+          "default": "",
+          "description": "Path to environment file to be used (optional)"
+        },
+        "http-snap.client-options": {
+          "type": "string",
+          "default": "",
+          "description": "Path to client options file to be used (optional)"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "http-snap-runner.runTest",
+        "title": "Run Http Snap as test"
+      },
+      {
+        "command": "http-snap-runner.runUpdateOverwrite",
+        "title": "Run Http Snap as update (Overwrite)"
+      },
+      {
+        "command": "http-snap-runner.runUpdateAppend",
+        "title": "Run Http Snap as update (Append)"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.99.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@typescript-eslint/eslint-plugin": "^8.31.1",
+    "@typescript-eslint/parser": "^8.31.1",
+    "eslint": "^9.25.1",
+    "typescript": "^5.8.3",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}

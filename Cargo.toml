@@ -9,7 +9,6 @@ reqwest = { version = "0.12", features = ["json", "cookies"] }
 tokio = { version = "1", features = ["full"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc", "raw_value"] }
 serde = { version = "1.0.217", features = ["derive"] }
-indoc = "2.0.5"
 clap = { version = "4.5.31", features = ["derive"] }
 glob = "0.3.2"
 log = "0.4"
@@ -21,5 +20,4 @@ pulldown-cmark = { version = "0.13.0", default-features = false }
 pulldown-cmark-to-cmark = "21.0.0"
 
 [dev-dependencies]
-insta = { version = "1.42.1" }
 wiremock = "0.6.3"

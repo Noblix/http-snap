@@ -1,0 +1,13 @@
+GET https://localhost:50001/api/items
+
+SNAPSHOT
+status: 405
+
+allow: POST
+cache-control: no-store,no-cache
+content-type: text/html; charset=utf-8
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z"):"Sat, 07 Jun 2025 22:32:17 GMT"}}
+pragma: no-cache
+server: Kestrel
+transfer-encoding: chunked
+

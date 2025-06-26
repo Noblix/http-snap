@@ -1,0 +1,14 @@
+GET https://localhost:50001
+
+SNAPSHOT
+status: 200
+
+cache-control: no-cache, no-store
+content-type: text/html; charset=utf-8
+date: {{_:timestamp("%a, %d %b %Y %H:%M:%S %Z"):"Mon, 09 Jun 2025 12:55:18 GMT"}}
+pragma: no-cache
+server: Kestrel
+set-cookie: {{_:_}}
+transfer-encoding: chunked
+x-frame-options: SAMEORIGIN
+

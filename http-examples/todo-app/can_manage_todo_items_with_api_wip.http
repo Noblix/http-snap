@@ -108,11 +108,10 @@ server: Kestrel
 transfer-encoding: chunked
 
 {
-  "items":
-    {{before_items}}
-    +
-    [
+  "items": [
+      ...
       {{item}}
+      ...
     ]
 }
 
